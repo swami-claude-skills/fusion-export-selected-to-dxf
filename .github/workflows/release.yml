@@ -1,0 +1,42 @@
+# Publishes a GitHub Release whenever a version tag (v1.2.0, v1.3.0, ...) is pushed.
+# It builds ExportSelectedToDXF.zip with tools/build_release.py, checks that the tag
+# matches the add-in's VERSION, and attaches the zip under that fixed name so
+#   https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip
+# always serves the newest version. Release notes come from notes/<tag>.md when present.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the zip
+        run: python3 tools/build_release.py "$(head -n 1 notes/${GITHUB_REF_NAME}.md 2>/dev/null || echo '')"
+
+      - name: Check the tag matches the add-in version
+        run: |
+          v=$(python3 -c "import json;print(json.load(open('version.json'))['version'])")
+          if [ "v$v" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match add-in VERSION $v"; exit 1
+          fi
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="notes/${GITHUB_REF_NAME}.md"
+          [ -f "$notes" ] || { echo "Release ${GITHUB_REF_NAME}" > /tmp/notes.md; notes=/tmp/notes.md; }
+          gh release create "${GITHUB_REF_NAME}" dist/ExportSelectedToDXF.zip \
+            --title "${GITHUB_REF_NAME}" --notes-file "$notes" --latest
