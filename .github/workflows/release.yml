@@ -1,13 +1,21 @@
-# Publishes a GitHub Release whenever a version tag (v1.2.0, v1.3.0, ...) is pushed.
-# It builds ExportSelectedToDXF.zip with tools/build_release.py, checks that the tag
-# matches the add-in's VERSION, and attaches the zip under that fixed name so
+# Publishes a GitHub Release whenever a new version reaches main.
+#
+# A release happens when version.json (or this workflow) changes on main and no release
+# exists yet for the add-in's VERSION. It builds ExportSelectedToDXF.zip with
+# tools/build_release.py, creates the tag vX.Y.Z, and attaches the zip under that fixed
+# name, so
 #   https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip
-# always serves the newest version. Release notes come from notes/<tag>.md when present.
+# always serves the newest version. Release notes come from notes/vX.Y.Z.md when present.
+# It can also be started by hand from the Actions tab (Run workflow).
 name: Release
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths:
+      - version.json
+      - .github/workflows/release.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,21 +30,34 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Build the zip
-        run: python3 tools/build_release.py "$(head -n 1 notes/${GITHUB_REF_NAME}.md 2>/dev/null || echo '')"
-
-      - name: Check the tag matches the add-in version
+      - name: Read the add-in version
+        id: ver
         run: |
-          v=$(python3 -c "import json;print(json.load(open('version.json'))['version'])")
-          if [ "v$v" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match add-in VERSION $v"; exit 1
-          fi
+          v=$(python3 -c "import re;print(re.search(r\"^VERSION\s*=\s*'([^']+)'\", open('ExportSelectedToDXF/ExportSelectedToDXF.py').read(), re.M).group(1))")
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          echo "Add-in version: $v"
 
-      - name: Publish the release
+      - name: Skip if this version is already released
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          notes="notes/${GITHUB_REF_NAME}.md"
-          [ -f "$notes" ] || { echo "Release ${GITHUB_REF_NAME}" > /tmp/notes.md; notes=/tmp/notes.md; }
-          gh release create "${GITHUB_REF_NAME}" dist/ExportSelectedToDXF.zip \
-            --title "${GITHUB_REF_NAME}" --notes-file "$notes" --latest
+          if gh release view "${{ steps.ver.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.ver.outputs.tag }} already exists; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the zip
+        if: steps.check.outputs.skip != 'true'
+        run: python3 tools/build_release.py
+
+      - name: Publish the release
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          notes="notes/$tag.md"
+          [ -f "$notes" ] || { echo "Release $tag" > /tmp/notes.md; notes=/tmp/notes.md; }
+          gh release create "$tag" dist/ExportSelectedToDXF.zip \
+            --target "$GITHUB_SHA" --title "$tag" --notes-file "$notes" --latest

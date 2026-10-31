@@ -37,7 +37,7 @@ When the panel opens it checks [`version.json`](version.json) and shows a banner
 | `docs/index.html` | The dashboard, served by GitHub Pages |
 | `tools/build_release.py` | Builds `dist/ExportSelectedToDXF.zip` and refreshes `version.json` |
 | `notes/vX.Y.Z.md` | Release notes for each version |
-| `.github/workflows/release.yml` | Pushing a tag such as `v1.3.0` builds the zip and publishes the release |
+| `.github/workflows/release.yml` | When a new version reaches main, builds the zip and publishes the release |
 
 Each release attaches the zip under the fixed name `ExportSelectedToDXF.zip`, so the download link above always gives the newest version.
 
