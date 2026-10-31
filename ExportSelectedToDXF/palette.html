@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Export Selected to DXF</title>
+<style>
+  /* Swami house palette — NO CDN, NO Google Fonts (webview may be offline). */
+  :root{
+    color-scheme: dark;
+    --bg:#0d0d0f; --panel:#141418; --panel-2:#1a1a20;
+    --cyan:#00e5ff; --green:#00ff88; --red:#ff5c7a; --amber:#ffb84d;
+    --text:#e8e8ec; --text-dim:#9aa0aa; --text-mute:#6a6f78; --border:#26262e;
+    --mono: ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+    --sans: system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:0 0 8px;overflow-x:hidden}
+  a{color:var(--cyan);text-decoration:none;cursor:pointer}
+
+  #errStrip{display:none;background:rgba(255,92,122,.12);border-bottom:1px solid var(--red);
+    color:var(--red);font-family:var(--mono);font-size:11px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;cursor:pointer}
+
+  .head{padding:12px;border-bottom:1px solid var(--border)}
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
+  h1{font-size:15px;font-weight:700;margin-top:4px}
+
+  /* selection + main action — always visible */
+  .action{padding:12px;border-bottom:1px solid var(--border)}
+  .selbox{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:11.5px;color:var(--text-dim)}
+  .selbox .big{font-size:20px;font-weight:700;color:var(--cyan);margin-right:6px}
+  .selbox .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{border:1px solid var(--border);border-radius:999px;padding:1px 8px;font-size:10.5px;color:var(--text)}
+  .chip.warn{border-color:rgba(255,184,77,.5);color:var(--amber)}
+  #exportBtn{width:100%;margin-top:10px;padding:11px 12px;font-size:13px;font-weight:700;letter-spacing:.5px;
+    background:rgba(0,229,255,.1);border:1px solid var(--cyan);color:var(--cyan)}
+  #exportBtn:hover{background:rgba(0,229,255,.2)}
+  #exportBtn:disabled{opacity:.4;cursor:default}
+  .dest{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--text-mute);word-break:break-all}
+  .dest b{color:var(--text-dim);font-weight:400}
+  .links{display:flex;gap:14px;margin-top:6px;font-family:var(--mono);font-size:11px}
+  .links a{color:var(--text-dim);border-bottom:1px dotted var(--text-mute)}
+  .links a:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
+  #updBanner{display:none;margin:10px 12px 0;padding:9px 11px;border:1px solid var(--green);border-radius:8px;
+    background:rgba(0,255,136,.08);font-size:12px;color:var(--text)}
+  #updBanner b{color:var(--green)}
+  #updBanner .row2{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  #updBanner button{border-color:rgba(0,255,136,.5);color:var(--green)}
+  #updLine{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:8px}
+  #status{margin-top:8px;font-family:var(--mono);font-size:11px;min-height:16px}
+  #status.ok{color:var(--green)} #status.bad{color:var(--red)}
+
+  .section{border-bottom:1px solid var(--border)}
+  .sec-head{display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:pointer;user-select:none}
+  .sec-head:hover{background:var(--panel-2)}
+  .chev{font-family:var(--mono);color:var(--text-mute);transition:transform .18s;font-size:10px}
+  .section.open .chev{transform:rotate(90deg);color:var(--cyan)}
+  .sec-title{font-size:13px;font-weight:700}
+  .sec-sub{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--text-mute)}
+  .sec-body{display:none;padding:2px 12px 14px}
+  .section.open .sec-body{display:block}
+
+  label.f{display:block;font-family:var(--mono);font-size:11px;color:var(--text-dim);margin:10px 0 4px}
+  input[type=text],input[type=number],select{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);
+    font-family:var(--mono);font-size:12px;padding:7px 9px;border-radius:6px;outline:none}
+  input:focus,select:focus{border-color:var(--cyan)}
+  .inrow{display:flex;gap:6px}
+  .inrow input{flex:1;min-width:0}
+  .chk{display:flex;align-items:flex-start;gap:8px;margin:10px 0;cursor:pointer}
+  .chk input{margin-top:3px;accent-color:var(--cyan)}
+  .chk span{font-size:12.5px}
+  .chk small{display:block;color:var(--text-mute);font-size:11px}
+  .hint{font-size:11px;color:var(--text-mute);margin-top:6px}
+  button{background:var(--panel-2);border:1px solid var(--border);color:var(--text-dim);
+    font-family:var(--mono);font-size:12px;padding:7px 11px;border-radius:6px;cursor:pointer;white-space:nowrap}
+  button:hover{border-color:var(--cyan);color:var(--cyan)}
+  button.danger:hover{border-color:var(--red);color:var(--red)}
+
+  .res{list-style:none}
+  .res li{display:flex;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12px}
+  .res li:last-child{border-bottom:0}
+  .res .dot{flex:none;width:8px;height:8px;border-radius:50%;margin-top:5px;background:var(--green)}
+  .res li.bad .dot{background:var(--red)}
+  .res li.skip .dot{background:var(--amber)}
+  .res .nm{word-break:break-all}
+  .res .meta{font-family:var(--mono);font-size:10.5px;color:var(--text-mute)}
+  .res li.bad .meta,.res li.skip .meta{color:var(--amber)}
+  .empty{color:var(--text-mute);font-size:12px;padding:6px 0}
+
+  footer{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);padding:12px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  footer .ver{color:var(--text-dim)}
+</style>
+</head>
+<body>
+
+<div id="errStrip" title="click to dismiss"></div>
+
+<div class="head">
+  <div class="kicker">Fusion · DXF export</div>
+  <h1 id="title">Export Selected to DXF</h1>
+  <div class="links"><a id="lnkDash">dashboard</a><a id="lnkDl">download latest</a><a id="lnkRel">all versions</a></div>
+</div>
+
+<div id="updBanner">
+  <div><b id="updTitle">New version available</b><div id="updNotes" style="color:var(--text-dim);font-size:11.5px;margin-top:3px"></div></div>
+  <div class="row2"><button id="updDl">download</button><button id="updWhat">what's new</button></div>
+</div>
+
+<div class="action">
+  <div class="selbox" id="selbox"><span class="big">0</span>selected</div>
+  <button id="exportBtn">EXPORT SELECTED</button>
+  <div class="dest">to <b id="destShow">…</b> · units <b id="unitShow">…</b></div>
+  <div id="status"></div>
+</div>
+
+<div class="section" data-key="output">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Output</span><span class="sec-sub">folder · units · names</span></div>
+  <div class="sec-body">
+    <label class="f">Folder</label>
+    <div class="inrow">
+      <input type="text" id="opt_folder" spellcheck="false">
+      <button id="browseBtn">browse</button>
+      <button id="openBtn" title="Open the folder">open</button>
+    </div>
+    <label class="f">Units</label>
+    <select id="opt_units">
+      <option value="design">Design units</option>
+      <option value="mm">Millimeters (mm)</option>
+      <option value="cm">Centimeters (cm)</option>
+      <option value="m">Meters (m)</option>
+      <option value="in">Inches (in)</option>
+      <option value="ft">Feet (ft)</option>
+    </select>
+    <label class="f">File names</label>
+    <select id="opt_naming">
+      <option value="component_item">Component - Item.dxf</option>
+      <option value="item">Item.dxf</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="opt_overwrite"><span>Overwrite existing files<small>Off: adds -2, -3 … so nothing is replaced</small></span></label>
+    <label class="chk"><input type="checkbox" id="opt_openFolder"><span>Open the folder after export</span></label>
+  </div>
+</div>
+
+<div class="section" data-key="sketch">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Sketches &amp; faces</span><span class="sec-sub">what goes in the file</span></div>
+  <div class="sec-body">
+    <label class="chk"><input type="checkbox" id="opt_construction"><span>Include construction geometry<small>Usually off for laser / CNC</small></span></label>
+    <label class="chk"><input type="checkbox" id="opt_points"><span>Include sketch points</span></label>
+    <label class="chk"><input type="checkbox" id="opt_projected"><span>Include projected geometry<small>Applies to whole sketches; faces and partial selections always export their outline</small></span></label>
+    <div class="hint">A planar face, or only some curves of a sketch, is exported through a temporary sketch that's deleted right after. Curved faces are skipped. A whole solid body exports its largest flat face.</div>
+  </div>
+</div>
+
+<div class="section" data-key="flat">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Flat patterns</span><span class="sec-sub">sheet metal</span></div>
+  <div class="sec-body">
+    <label class="chk"><input type="checkbox" id="opt_bendLines"><span>Bend center lines</span></label>
+    <label class="chk"><input type="checkbox" id="opt_extentLines"><span>Bend extent lines</span></label>
+    <label class="chk"><input type="checkbox" id="opt_splinesToPolylines"><span>Convert splines to polylines</span></label>
+    <label class="f">Polyline tolerance (mm)</label>
+    <input type="number" id="opt_polyTolerance" step="0.001" min="0.001">
+    <div class="hint">Select a flat pattern in the browser, or a sheet-metal body or component that has one.</div>
+  </div>
+</div>
+
+<div class="section" data-key="updates">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Updates</span><span class="sec-sub" id="updSub">—</span></div>
+  <div class="sec-body">
+    <label class="chk"><input type="checkbox" id="opt_checkUpdates"><span>Check for a newer version when the panel opens<small>Reads a small version file on GitHub; nothing is downloaded or installed automatically</small></span></label>
+    <button id="updCheck">check now</button>
+    <div id="updLine">Not checked yet.</div>
+    <div class="hint">To update: download the zip, run its installer, then in Fusion press Shift+S, select ExportSelectedToDXF, click Stop, then Run.</div>
+  </div>
+</div>
+
+<div class="section" data-key="results">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Last export</span><span class="sec-sub" id="resSub">—</span></div>
+  <div class="sec-body"><ul class="res" id="resList"><li class="empty">Nothing exported yet.</li></ul></div>
+</div>
+
+<footer>
+  <span class="ver" id="ver">Export Selected to DXF</span>
+  <span>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</span>
+  <button class="danger" id="resetBtn">reset to defaults</button>
+</footer>
+
+<script>
+let STATE = {};
+let LINKS = {};
+let UPD = {};
+const UNIT_LABEL = {design:'design', mm:'mm', cm:'cm', m:'m', in:'in', ft:'ft'};
+
+function send(action, obj){ return adsk.fusionSendData(action, JSON.stringify(obj||{})); }
+function showError(msg){ const s=document.getElementById('errStrip'); s.textContent=msg||''; s.style.display=msg?'block':'none'; }
+document.getElementById('errStrip').addEventListener('click', ()=>showError(''));
+function status(msg, cls){ const s=document.getElementById('status'); s.textContent=msg||''; s.className=cls||''; }
+function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function reflectDest(){
+  const o = STATE.options||{};
+  document.getElementById('destShow').textContent = o.folder || '…';
+  document.getElementById('unitShow').textContent = UNIT_LABEL[o.units] || o.units || '…';
+}
+
+function applyState(payload){
+  if(payload.version){
+    const t = payload.name+' (v'+payload.version+')';
+    document.getElementById('ver').textContent = t; document.title = t;
+  }
+  STATE = payload.state || payload;
+  const o = STATE.options||{};
+  Object.keys(o).forEach(k=>{
+    const el=document.getElementById('opt_'+k); if(!el) return;
+    if(el.type==='checkbox') el.checked=!!o[k]; else el.value=o[k];
+  });
+  const col = (STATE.ui && STATE.ui.collapsed)||{};
+  document.querySelectorAll('.section').forEach(sec=>{
+    const key=sec.dataset.key; sec.classList.toggle('open', key in col ? !col[key] : false);
+  });
+  reflectDest();
+  if(payload.selection) applySelection(payload.selection);
+  if(payload.results) applyResults(payload.results);
+  if(payload.links) LINKS = payload.links;
+  if(payload.update) applyUpdate(payload.update);
+}
+
+function applySelection(s){
+  s = s || {};
+  const chips=[];
+  if(s.noDesign) chips.push('<span class="chip warn">open a design</span>');
+  if(s.sketches) chips.push('<span class="chip">'+s.sketches+' sketch'+(s.sketches>1?'es':'')+'</span>');
+  if(s.partial) chips.push('<span class="chip">'+s.partial+' partial sketch'+(s.partial>1?'es':'')+'</span>');
+  if(s.faces) chips.push('<span class="chip">'+s.faces+' face'+(s.faces>1?'s':'')+'</span>');
+  if(s.bodies) chips.push('<span class="chip">'+s.bodies+' bod'+(s.bodies>1?'ies':'y')+' (largest flat face)</span>');
+  if(s.flats) chips.push('<span class="chip">'+s.flats+' flat pattern'+(s.flats>1?'s':'')+'</span>');
+  if(s.skipped) chips.push('<span class="chip warn">'+s.skipped+' will be skipped</span>');
+  const files=(s.sketches||0)+(s.partial||0)+(s.faces||0)+(s.bodies||0)+(s.flats||0);
+  document.getElementById('selbox').innerHTML = '<span class="big">'+(s.count||0)+'</span>selected'+
+    (s.count? ' → '+files+' file'+(files===1?'':'s') : ' — pick sketch curves, sketches, faces, bodies or flat patterns')+
+    (chips.length? '<div class="chips">'+chips.join('')+'</div>' : '');
+  document.getElementById('exportBtn').disabled = !files;
+}
+
+function applyResults(results){
+  const ul=document.getElementById('resList');
+  if(!results || !results.length){ ul.innerHTML='<li class="empty">Nothing exported yet.</li>'; document.getElementById('resSub').textContent='—'; return; }
+  const ok=results.filter(r=>r.ok).length;
+  document.getElementById('resSub').textContent = ok+' of '+results.length+' ok';
+  ul.innerHTML = results.map(r=>{
+    const cls = r.ok ? '' : (r.kind==='skipped' ? 'skip' : 'bad');
+    let meta = r.kind;
+    if(r.ok){
+      if(r.note) meta += ' · '+r.note; else if(r.curves!=null) meta += ' · '+r.curves+' curves';
+      if(r.bytes!=null) meta += ' · '+(r.bytes/1024).toFixed(1)+' KB';
+    } else meta += ' · '+(r.error||'failed');
+    return '<li class="'+cls+'"><span class="dot"></span><div><div class="nm">'+esc(r.ok ? r.fileName : (r.component? r.component+' - ':'')+r.name)+'</div><div class="meta">'+esc(meta)+'</div></div></li>';
+  }).join('');
+}
+
+// collapse toggle + persist
+document.querySelectorAll('.section').forEach(sec=>{
+  sec.querySelector('.sec-head').addEventListener('click', ()=>{
+    sec.classList.toggle('open');
+    const patch={ui:{collapsed:{}}}; patch.ui.collapsed[sec.dataset.key]=!sec.classList.contains('open');
+    send('setState', patch);
+  });
+});
+
+// options persist on change
+document.querySelectorAll('[id^=opt_]').forEach(el=>{
+  el.addEventListener('change', ()=>{
+    const k=el.id.replace('opt_','');
+    let v = el.type==='checkbox' ? el.checked : el.value;
+    if(el.type==='number'){ v=parseFloat(v); if(!(v>0)){ v=0.01; el.value=v; } }
+    STATE.options[k]=v; reflectDest();
+    const patch={options:{}}; patch.options[k]=v; send('setState', patch);
+  });
+});
+
+document.getElementById('browseBtn').addEventListener('click', ()=>{
+  send('browse',{}).then(r=>{ try{ const d=JSON.parse(r); STATE.options.folder=d.folder; document.getElementById('opt_folder').value=d.folder; reflectDest(); }catch(e){} });
+});
+document.getElementById('openBtn').addEventListener('click', ()=>{
+  send('openFolder',{}).then(r=>{ try{ const d=JSON.parse(r); if(d.error) status(d.error,'bad'); }catch(e){} });
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const b=document.getElementById('exportBtn');
+  b.disabled=true; status('Exporting…',''); showError('');
+  send('export',{}).then(r=>{
+    b.disabled=false;
+    let d; try{ d=JSON.parse(r); }catch(e){ status('No reply from Fusion.','bad'); return; }
+    if(d.error){ status(d.error,'bad'); return; }
+    const ok=d.results.filter(x=>x.ok).length, bad=d.results.length-ok;
+    status(ok+' file'+(ok===1?'':'s')+' written'+(bad? ' · '+bad+' not exported (see Last export)' : ''), bad? 'bad':'ok');
+    applyResults(d.results);
+    if(bad){ const sec=document.querySelector('.section[data-key=results]'); if(!sec.classList.contains('open')) sec.querySelector('.sec-head').click(); }
+  }).catch(e=>{ b.disabled=false; status(String(e),'bad'); });
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>send('reset',{}));
+
+document.getElementById('mail').addEventListener('click', ()=>{
+  const u='swami.human', d='gmail.com';
+  window.location.href='mailto:'+u+'@'+d+'?subject='+encodeURIComponent('Export Selected to DXF');
+});
+
+function openUrl(u){ if(u) send('openUrl',{url:u}); }
+function applyUpdate(u){
+  UPD = u||{};
+  const line=document.getElementById('updLine'), sub=document.getElementById('updSub'), ban=document.getElementById('updBanner');
+  const st=UPD.state||'unchecked';
+  ban.style.display = st==='newer' ? 'block' : 'none';
+  if(st==='newer'){
+    document.getElementById('updTitle').textContent = 'Version '+UPD.latest+' is available (you have '+UPD.current+')';
+    document.getElementById('updNotes').textContent = UPD.notes||'';
+    line.textContent='Version '+UPD.latest+' is available.'+(UPD.date? ' Released '+UPD.date+'.':''); sub.textContent='update available';
+  } else if(st==='current'){ line.textContent='You have the latest version ('+(UPD.current||'')+').'; sub.textContent='up to date'; }
+  else if(st==='checking'){ line.textContent='Checking…'; sub.textContent='checking'; }
+  else if(st==='error'){ line.textContent='Could not check: '+(UPD.error||'no reply')+'.'; sub.textContent='check failed'; }
+  else { line.textContent='Not checked yet.'; sub.textContent='—'; }
+}
+document.getElementById('lnkDash').addEventListener('click', ()=>openUrl((UPD.dashboard)||LINKS.dashboard));
+document.getElementById('lnkDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
+document.getElementById('lnkRel').addEventListener('click', ()=>openUrl(LINKS.releases));
+document.getElementById('updDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
+document.getElementById('updWhat').addEventListener('click', ()=>openUrl(LINKS.releases));
+document.getElementById('updCheck').addEventListener('click', ()=>send('checkUpdate',{}));
+
+window.fusionJavaScriptHandler = { handle(action, dataStr){
+  try{
+    const data = JSON.parse(dataStr||'{}');
+    if(action==='stateChanged') applyState(data);
+    else if(action==='selection') applySelection(data);
+    else if(action==='update') applyUpdate(data);
+    else if(action==='error') showError(data.msg);
+  }catch(e){ showError(String(e)); }
+  return 'OK';
+}};
+
+// pull initial state (retry briefly — the bridge can lag on first load)
+(function hello(n){
+  try{
+    send('ready',{}).then(r=>{ try{ applyState(JSON.parse(r)); }catch(e){ if(n>0) setTimeout(()=>hello(n-1),300); } });
+  }catch(e){ if(n>0) setTimeout(()=>hello(n-1),300); }
+})(10);
+</script>
+</body>
+</html>

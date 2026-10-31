@@ -1,0 +1,11 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "addin",
+    "id": "ExportSelectedToDXF",
+    "author": "Swami",
+    "description": { "": "Export the selected sketch curves, sketches, planar faces, solid bodies and flat patterns as one DXF per item, from a dark dockable palette." },
+    "version": "1.2.0",
+    "runOnStartup": true,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

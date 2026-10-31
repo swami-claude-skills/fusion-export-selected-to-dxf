@@ -1,0 +1,7 @@
+{
+  "version": "1.2.0",
+  "date": "Oct 30, 2026",
+  "notes": "Renamed to Export Selected to DXF; button also in SOLID > CREATE. Panel links to the dashboard and latest download, and tells you when a newer version is out. Solid bodies export their largest flat face; face and partial-sketch exports fixed.",
+  "zip": "https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip",
+  "dashboard": "https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/"
+}
