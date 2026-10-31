@@ -46,6 +46,8 @@
   #updBanner b{color:var(--green)}
   #updBanner .row2{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
   #updBanner button{border-color:rgba(0,255,136,.5);color:var(--green)}
+  #updBanner #updInstall{background:rgba(0,255,136,.14);font-weight:700}
+  #updBanner button:disabled{opacity:.4;cursor:default}
   #updLine{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:8px}
   #status{margin-top:8px;font-family:var(--mono);font-size:11px;min-height:16px}
   #status.ok{color:var(--green)} #status.bad{color:var(--red)}
@@ -104,7 +106,7 @@
 
 <div id="updBanner">
   <div><b id="updTitle">New version available</b><div id="updNotes" style="color:var(--text-dim);font-size:11.5px;margin-top:3px"></div></div>
-  <div class="row2"><button id="updDl">download</button><button id="updWhat">what's new</button></div>
+  <div class="row2" id="updBtns"><button id="updInstall">install update</button><button id="updDl">download</button><button id="updWhat">what's new</button></div>
 </div>
 
 <div class="action">
@@ -170,7 +172,7 @@
     <label class="chk"><input type="checkbox" id="opt_checkUpdates"><span>Check for a newer version when the panel opens<small>Reads a small version file on GitHub; nothing is downloaded or installed automatically</small></span></label>
     <button id="updCheck">check now</button>
     <div id="updLine">Not checked yet.</div>
-    <div class="hint">To update: download the zip, run its installer, then in Fusion press Shift+S, select ExportSelectedToDXF, click Stop, then Run.</div>
+    <div class="hint">When a newer version is out, click <b>install update</b> in the green banner. After it installs, press Shift+S in Fusion, select ExportSelectedToDXF, click Stop, then Run (or just restart Fusion).</div>
   </div>
 </div>
 
@@ -310,12 +312,27 @@ function openUrl(u){ if(u) send('openUrl',{url:u}); }
 function applyUpdate(u){
   UPD = u||{};
   const line=document.getElementById('updLine'), sub=document.getElementById('updSub'), ban=document.getElementById('updBanner');
+  const title=document.getElementById('updTitle'), notes=document.getElementById('updNotes'), btns=document.getElementById('updBtns');
   const st=UPD.state||'unchecked';
-  ban.style.display = st==='newer' ? 'block' : 'none';
+  const showBanner = ['newer','installing','installed','installFailed'].includes(st);
+  ban.style.display = showBanner ? 'block' : 'none';
+  btns.style.display = (st==='newer' || st==='installFailed') ? 'flex' : 'none';
+  document.getElementById('updInstall').disabled = st==='installing';
   if(st==='newer'){
-    document.getElementById('updTitle').textContent = 'Version '+UPD.latest+' is available (you have '+UPD.current+')';
-    document.getElementById('updNotes').textContent = UPD.notes||'';
+    title.textContent = 'Version '+UPD.latest+' is available (you have '+UPD.current+')';
+    notes.textContent = UPD.notes||'';
     line.textContent='Version '+UPD.latest+' is available.'+(UPD.date? ' Released '+UPD.date+'.':''); sub.textContent='update available';
+  } else if(st==='installing'){
+    title.textContent = 'Installing version '+(UPD.latest||'')+'…'; notes.textContent='Downloading from GitHub and replacing the add-in files.';
+    line.textContent='Installing…'; sub.textContent='installing';
+  } else if(st==='installed'){
+    title.textContent = 'Version '+UPD.installed+' is installed';
+    notes.textContent = 'To start using it: press Shift+S, select ExportSelectedToDXF, click Stop, then Run. Or restart Fusion.';
+    line.textContent='Version '+UPD.installed+' is installed and takes effect after a Stop and Run (or a Fusion restart).'; sub.textContent='restart to finish';
+  } else if(st==='installFailed'){
+    title.textContent = 'The update could not be installed';
+    notes.textContent = (UPD.error||'unknown error')+'. Nothing was changed. You can download it instead.';
+    line.textContent='Install failed: '+(UPD.error||'unknown error')+'.'; sub.textContent='install failed';
   } else if(st==='current'){ line.textContent='You have the latest version ('+(UPD.current||'')+').'; sub.textContent='up to date'; }
   else if(st==='checking'){ line.textContent='Checking…'; sub.textContent='checking'; }
   else if(st==='error'){ line.textContent='Could not check: '+(UPD.error||'no reply')+'.'; sub.textContent='check failed'; }
@@ -327,6 +344,7 @@ document.getElementById('lnkRel').addEventListener('click', ()=>openUrl(LINKS.re
 document.getElementById('updDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
 document.getElementById('updWhat').addEventListener('click', ()=>openUrl(LINKS.releases));
 document.getElementById('updCheck').addEventListener('click', ()=>send('checkUpdate',{}));
+document.getElementById('updInstall').addEventListener('click', ()=>send('installUpdate',{}));
 
 window.fusionJavaScriptHandler = { handle(action, dataStr){
   try{

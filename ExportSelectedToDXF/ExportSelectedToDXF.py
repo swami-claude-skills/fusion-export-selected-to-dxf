@@ -4,9 +4,10 @@
 
 import adsk.core, adsk.fusion, traceback
 import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowser
+import io, shutil, zipfile
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.2.0'
+VERSION    = '1.3.0'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -56,16 +57,23 @@ DEFAULTS = {
 }
 
 
-def _settings_path():
-    base = os.environ.get('APPDATA', os.path.expanduser('~')) if os.name == 'nt' \
+def _data_root():
+    return os.environ.get('APPDATA', os.path.expanduser('~')) if os.name == 'nt' \
         else os.path.expanduser('~/Library/Application Support')
-    d = os.path.join(base, 'SwamiFusionAddins', TOOL_NAME)
+
+
+def _data_dir():
+    """Per-user folder outside the add-in (settings, update backups); survives reinstalls."""
+    d = os.path.join(_data_root(), 'SwamiFusionAddins', TOOL_NAME)
     os.makedirs(d, exist_ok=True)
-    path = os.path.join(d, 'settings.json')
-    old = os.path.join(base, 'SwamiFusionAddins', LEGACY_NAME, 'settings.json')
+    return d
+
+
+def _settings_path():
+    path = os.path.join(_data_dir(), 'settings.json')
+    old = os.path.join(_data_root(), 'SwamiFusionAddins', LEGACY_NAME, 'settings.json')
     if not os.path.exists(path) and os.path.exists(old):
         try:
-            import shutil
             shutil.copyfile(old, path)
         except Exception:
             pass
@@ -421,6 +429,81 @@ def _start_update_check():
     threading.Thread(target=_check_update_thread, daemon=True).start()
 
 
+# ---- self-update: download the latest zip and replace this add-in's own files ----
+def _apply_update(zip_bytes, target_dir, backup_root, current_version, tool_name=None):
+    """Check the package, back up target_dir, then overwrite its files with the zip's.
+    Pure Python (no Fusion API) so it can be tested anywhere. Returns (new_version, backup_dir)."""
+    tool_name = tool_name or TOOL_NAME
+    try:
+        z = zipfile.ZipFile(io.BytesIO(zip_bytes))
+    except zipfile.BadZipFile:
+        raise RuntimeError('the download was not a zip file (GitHub may be unreachable; try again later)')
+    prefix = tool_name + '/'
+    names = [n for n in z.namelist() if n.startswith(prefix) and not n.endswith('/')]
+    main_py, manifest = prefix + tool_name + '.py', prefix + tool_name + '.manifest'
+    if main_py not in names or manifest not in names:
+        raise RuntimeError('the download is not a %s package' % tool_name)
+    for n in names:
+        parts = n[len(prefix):].split('/')
+        if any(p in ('', '..') for p in parts) or ':' in n or n.startswith('/'):
+            raise RuntimeError('the download contains an unsafe path: %s' % n)
+    m = re.search(r"^VERSION\s*=\s*'([^']+)'", z.read(main_py).decode('utf-8'), re.M)
+    new_version = m.group(1) if m else ''
+    if _vtuple(new_version) <= _vtuple(current_version):
+        raise RuntimeError('the download (v%s) is not newer than v%s' % (new_version or '?', current_version))
+    if not os.access(target_dir, os.W_OK):
+        raise RuntimeError('the add-in folder is not writable: %s' % target_dir)
+    backup = os.path.join(backup_root, 'backup-v' + current_version)
+    if os.path.exists(backup):
+        shutil.rmtree(backup)
+    shutil.copytree(target_dir, backup, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+    try:
+        for n in names:
+            dest = os.path.join(target_dir, *n[len(prefix):].split('/'))
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            tmp = dest + '.updating'
+            with open(tmp, 'wb') as f:
+                f.write(z.read(n))
+            os.replace(tmp, dest)
+            if dest.endswith('.command'):
+                os.chmod(dest, 0o755)
+    except Exception:
+        shutil.copytree(backup, target_dir, dirs_exist_ok=True)   # put the old files back
+        raise
+    return new_version, backup
+
+
+def _install_update_thread():
+    info = dict(_update_info)
+    try:
+        req = urllib.request.Request(DOWNLOAD_URL, headers={'User-Agent': TOOL_NAME + '/' + VERSION})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = r.read()
+        new_version, backup = _apply_update(data, _HERE, _data_dir(), VERSION)
+        info.update({'state': 'installed', 'installed': new_version, 'backup': backup})
+    except Exception as ex:
+        msg = str(ex).strip().splitlines()[-1] if str(ex).strip() else type(ex).__name__
+        info.update({'state': 'installFailed', 'error': msg})
+    try:
+        app.fireCustomEvent(UPDATE_EVENT_ID, json.dumps(info))
+    except Exception:
+        pass
+
+
+def _start_install_update():
+    global _update_info
+    latest = _update_info.get('latest', '')
+    res = ui.messageBox('Install %s v%s now?\n\nIt replaces this add-in\'s files with the latest '
+                        'version from GitHub. Your current version is backed up first, and your '
+                        'settings are kept.' % (TITLE, latest or 'latest'),
+                        TITLE, adsk.core.MessageBoxButtonTypes.YesNoButtonType)
+    if res != adsk.core.DialogResults.DialogYes:
+        return
+    _update_info = dict(_update_info, state='installing')
+    _push('update', _update_info)
+    threading.Thread(target=_install_update_thread, daemon=True).start()
+
+
 def _open_url(url):
     try:
         webbrowser.open(url)
@@ -544,6 +627,9 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                 args.returnData = 'OK'
             elif action == 'checkUpdate':
                 _start_update_check()
+                args.returnData = 'OK'
+            elif action == 'installUpdate':
+                _start_install_update()
                 args.returnData = 'OK'
             elif action == 'export':
                 try:

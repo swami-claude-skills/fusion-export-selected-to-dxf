@@ -18,15 +18,19 @@ Units (design, mm, cm, m, in, ft), file naming, overwrite or auto-number, and wh
 
 ## Install
 
-1. Download **ExportSelectedToDXF.zip** and unzip it.
-2. Double-click **install-macos.command** (Mac; on first run you may need to right-click it and choose Open) or **install-windows.cmd** (Windows).
-3. In Fusion press **Shift+S**, choose **ExportSelectedToDXF** under Add-Ins, and click **Run**. It runs automatically each time Fusion starts.
+1. Download **ExportSelectedToDXF.zip** and unzip it. Put the **ExportSelectedToDXF** folder somewhere it can stay (for example a Fusion add-ins folder in Documents) — Fusion runs it from there.
+2. In Fusion press **Shift+S** to open **Scripts and Add-Ins**, click the **+** next to **My Add-Ins**, and choose the **ExportSelectedToDXF** folder.
+3. Select **ExportSelectedToDXF**, tick **Run on Startup**, and click **Run**.
+
+This way nothing has to be approved in macOS Settings, because no installer script runs.
 
 The button is in DESIGN under **SOLID ▸ CREATE** and **UTILITIES ▸ ADD-INS**. To give it a keyboard shortcut, right-click the button and choose **Change Keyboard Shortcut**.
 
+**Alternative:** the zip also contains double-click installers (**install-macos.command**, **install-windows.cmd**) that copy the add-in into Fusion's own AddIns folder. On a Mac, macOS blocks the script the first time and it has to be allowed in **System Settings ▸ Privacy & Security**.
+
 ## Updating
 
-When the panel opens it checks [`version.json`](version.json) and shows a banner if a newer version exists. Download the zip, run its installer, then in Fusion press **Shift+S**, select ExportSelectedToDXF, click **Stop**, then **Run**. Your settings are kept.
+When the panel opens it checks [`version.json`](version.json). If a newer version exists, a green banner offers **install update**: the add-in downloads the new version from this repository, backs up the current one, and replaces its own files. Then press **Shift+S**, select ExportSelectedToDXF, click **Stop**, then **Run** (or restart Fusion). Your settings are kept. Versions before 1.3.0 don't have the button; update those by downloading the zip and replacing the folder.
 
 ## Repository layout
 
