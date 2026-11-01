@@ -12,7 +12,9 @@ An Autodesk Fusion add-in that exports whatever you have selected as **one DXF f
 | Some curves of a sketch | Just those curves, at their original position |
 | A planar face | The face outline |
 | A solid body | Its largest flat face |
-| A flat pattern, or a sheet-metal body or component | The flat pattern, with optional bend lines |
+| A flat pattern, or a sheet-metal body or component | The flat pattern, with optional bend lines (created first if the part doesn't have one yet) |
+
+The panel's **Log** section records every export, skipped item, error and update, and saves it to `log.txt` in the add-in's settings folder; **copy** puts it on the clipboard to send when something goes wrong.
 
 Units (design, mm, cm, m, in, ft), file naming, overwrite or auto-number, and whether to include construction geometry, sketch points and projected geometry are all set in the panel and remembered between sessions.
 

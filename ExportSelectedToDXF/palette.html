@@ -48,6 +48,15 @@
   #updBanner button{border-color:rgba(0,255,136,.5);color:var(--green)}
   #updBanner #updInstall{background:rgba(0,255,136,.14);font-weight:700}
   #updBanner button:disabled{opacity:.4;cursor:default}
+  #logBox{max-height:260px;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:6px 8px;font-family:var(--mono);font-size:10.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  #logBox .le{display:flex;gap:7px}
+  #logBox .lt{color:var(--text-mute);flex:none}
+  #logBox .lm{color:var(--text-dim)}
+  #logBox .l-ok .lm{color:var(--green)} #logBox .l-warn .lm{color:var(--amber)} #logBox .l-error .lm{color:var(--red)}
+  #logBox .lempty{color:var(--text-mute)}
+  .logbar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  #logFilter{width:118px;flex:none;padding:5px 7px;font-size:11px}
   #updLine{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:8px}
   #status{margin-top:8px;font-family:var(--mono);font-size:11px;min-height:16px}
   #status.ok{color:var(--green)} #status.bad{color:var(--red)}
@@ -181,6 +190,20 @@
   <div class="sec-body"><ul class="res" id="resList"><li class="empty">Nothing exported yet.</li></ul></div>
 </div>
 
+<div class="section" data-key="log">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Log</span><span class="sec-sub" id="logSub">—</span></div>
+  <div class="sec-body">
+    <div id="logBox"><div class="lempty">Nothing logged yet.</div></div>
+    <div class="logbar">
+      <select id="logFilter" title="Show"><option value="all">all</option><option value="problems">problems only</option></select>
+      <button id="logCopy">copy</button>
+      <button id="logOpen" title="Open log.txt (the full history)">open log file</button>
+      <button id="logClear" title="Clear this view (the log file keeps everything)">clear</button>
+    </div>
+    <div class="hint">Every export, update check and error is listed here and saved to log.txt in the add-in's settings folder. If something goes wrong, click <b>copy</b> and paste it into a message.</div>
+  </div>
+</div>
+
 <footer>
   <span class="ver" id="ver">Export Selected to DXF</span>
   <span>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</span>
@@ -189,6 +212,7 @@
 
 <script>
 let STATE = {};
+let LOG = [];
 let LINKS = {};
 let UPD = {};
 const UNIT_LABEL = {design:'design', mm:'mm', cm:'cm', m:'m', in:'in', ft:'ft'};
@@ -225,6 +249,7 @@ function applyState(payload){
   if(payload.results) applyResults(payload.results);
   if(payload.links) LINKS = payload.links;
   if(payload.update) applyUpdate(payload.update);
+  if(payload.log){ LOG = payload.log.slice(); renderLog(); }
 }
 
 function applySelection(s){
@@ -243,6 +268,32 @@ function applySelection(s){
     (chips.length? '<div class="chips">'+chips.join('')+'</div>' : '');
   document.getElementById('exportBtn').disabled = !files;
 }
+
+function renderLog(){
+  const box=document.getElementById('logBox'), f=document.getElementById('logFilter').value;
+  const rows = LOG.filter(e => f==='all' || e.level==='warn' || e.level==='error');
+  const probs = LOG.filter(e => e.level==='warn' || e.level==='error').length;
+  document.getElementById('logSub').textContent = LOG.length ? (LOG.length+' entr'+(LOG.length===1?'y':'ies')+(probs? ' · '+probs+' problem'+(probs===1?'':'s') : '')) : '—';
+  if(!rows.length){ box.innerHTML='<div class="lempty">'+(LOG.length? 'No problems logged.' : 'Nothing logged yet.')+'</div>'; return; }
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
+  box.innerHTML = rows.map(e => '<div class="le l-'+esc(e.level)+'"><span class="lt">'+esc(e.t)+'</span><span class="lm">'+esc(e.msg)+'</span></div>').join('');
+  if(atBottom) box.scrollTop = box.scrollHeight;
+}
+function logText(){
+  const head = (document.getElementById('ver').textContent||'Export Selected to DXF')+' log\n';
+  return head + LOG.map(e => e.d+' '+e.t+'  '+e.level.toUpperCase().padEnd(5)+'  '+e.msg).join('\n');
+}
+function copyText(txt){
+  const done = ()=>status('Log copied to the clipboard.','ok');
+  const fallback = ()=>{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove();
+    ok ? done() : status('Copy did not work here; use open log file instead.','bad'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, fallback); } else fallback();
+}
+document.getElementById('logFilter').addEventListener('change', renderLog);
+document.getElementById('logCopy').addEventListener('click', ()=>copyText(logText()));
+document.getElementById('logOpen').addEventListener('click', ()=>send('openLog',{}));
+document.getElementById('logClear').addEventListener('click', ()=>{ LOG=[]; renderLog(); send('clearLog',{}); });
 
 function applyResults(results){
   const ul=document.getElementById('resList');
@@ -352,6 +403,7 @@ window.fusionJavaScriptHandler = { handle(action, dataStr){
     if(action==='stateChanged') applyState(data);
     else if(action==='selection') applySelection(data);
     else if(action==='update') applyUpdate(data);
+    else if(action==='log'){ LOG.push(data); if(LOG.length>300) LOG.shift(); renderLog(); }
     else if(action==='error') showError(data.msg);
   }catch(e){ showError(String(e)); }
   return 'OK';

@@ -4,10 +4,10 @@
 
 import adsk.core, adsk.fusion, traceback
 import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowser
-import io, shutil, zipfile
+import io, shutil, zipfile, datetime, platform
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.3.1'
+VERSION    = '1.4.0'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -35,6 +35,10 @@ _handlers = []
 _last_results = []
 _update_info = {'state': 'unchecked'}
 _update_event = None
+_LOG = []                 # recent log entries shown in the panel
+_LOG_LOCK = threading.Lock()
+LOG_KEEP = 300            # entries kept in memory / sent to the panel
+LOG_FILE_MAX = 400_000    # bytes before log.txt rolls over to log.old.txt
 
 # ---- factory defaults = schema. Every persisted value lives here. ----
 DEFAULTS = {
@@ -53,7 +57,7 @@ DEFAULTS = {
         'polyTolerance': 0.01,        # in mm
         'checkUpdates': True,         # look for a newer version when the panel opens
     },
-    'ui': {'collapsed': {'output': True, 'sketch': True, 'flat': True, 'updates': True, 'results': True}},
+    'ui': {'collapsed': {'output': True, 'sketch': True, 'flat': True, 'updates': True, 'results': True, 'log': True}},
 }
 
 
@@ -393,31 +397,26 @@ def export_entities(design, entities, opts):
         comp = job['comp']
         comp_name = getattr(comp, 'name', '') or ''
         r = {'kind': 'flat pattern', 'name': 'Flat Pattern', 'component': comp_name}
-        fp, made = job['fp'], False
+        fp = job['fp']
         try:
             path = _target_path(folder, comp_name, 'Flat Pattern', opts)
             if fp is None:
-                # No flat pattern yet: make a temporary one, stationary face = largest flat face.
+                # No flat pattern yet: create one (largest flat face stays put) and keep it,
+                # exactly like Fusion's own Create Flat Pattern. Deleting it again through the
+                # API leaves Fusion's sheet-metal state inconsistent, so it is left in place.
                 face = _largest_planar_face(job['body'])
                 if face is None:
                     raise RuntimeError('the sheet-metal body has no flat face to unfold from')
                 fp = comp.createFlatPattern(face)
                 if fp is None:
                     raise RuntimeError('Fusion could not create a flat pattern for this part')
-                made = True
-                r['note'] = 'temporary flat pattern'
+                r['note'] = 'flat pattern created'
             _export_flat(design, fp, path, opts)
             r['file'] = path
             r['ok'] = True
         except Exception as ex:
             r['ok'] = False
             r['error'] = str(ex).strip().splitlines()[-1]
-        finally:
-            if made:
-                try:
-                    fp.deleteMe()
-                except Exception:
-                    r['note'] = 'temporary flat pattern could not be removed; delete it in the browser'
         results.append(r)
 
     for s in skipped:
@@ -538,6 +537,7 @@ def _start_install_update():
                         TITLE, adsk.core.MessageBoxButtonTypes.YesNoButtonType)
     if res != adsk.core.DialogResults.DialogYes:
         return
+    log('info', 'Installing update v%s...' % (latest or 'latest'))
     _update_info = dict(_update_info, state='installing')
     _push('update', _update_info)
     threading.Thread(target=_install_update_thread, daemon=True).start()
@@ -560,7 +560,47 @@ def _push(action, payload):
 
 
 def _push_error(msg):
+    log('error', msg.strip().splitlines()[-1] if msg.strip() else msg)
     _push('error', {'msg': msg})
+
+
+# ---- activity log: shown in the panel's Log section and written to log.txt ----
+def _log_path():
+    return os.path.join(_data_dir(), 'log.txt')
+
+
+def log(level, msg):
+    """level: info | ok | warn | error. Safe from any thread; only the main thread pushes to the panel."""
+    now = datetime.datetime.now()
+    entry = {'t': now.strftime('%H:%M:%S'), 'd': now.strftime('%b %d'), 'level': level, 'msg': str(msg)}
+    with _LOG_LOCK:
+        _LOG.append(entry)
+        del _LOG[:-LOG_KEEP]
+        try:
+            path = _log_path()
+            if os.path.exists(path) and os.path.getsize(path) > LOG_FILE_MAX:
+                os.replace(path, os.path.join(_data_dir(), 'log.old.txt'))
+            with open(path, 'a', encoding='utf-8') as f:
+                f.write('%s  %-5s  %s\n' % (now.strftime('%Y-%m-%d %H:%M:%S'), level.upper(), msg))
+        except Exception:
+            pass
+    if threading.current_thread() is threading.main_thread():
+        try:
+            _push('log', entry)
+        except Exception:
+            pass
+
+
+def _log_results(results):
+    for r in results:
+        name = r.get('fileName') or ('%s - %s' % (r.get('component'), r.get('name')) if r.get('component') else r.get('name'))
+        if r.get('ok'):
+            extra = r.get('note') or ('%s curves' % r['curves'] if r.get('curves') is not None else '')
+            log('ok', '%s: %s%s' % (r.get('kind'), name, (' (%s)' % extra) if extra else ''))
+        elif r.get('kind') == 'skipped':
+            log('warn', 'skipped %s: %s' % (name, r.get('error')))
+        else:
+            log('error', '%s %s failed: %s' % (r.get('kind'), name, r.get('error')))
 
 
 def _current_entities():
@@ -594,10 +634,14 @@ def _do_export():
         raise RuntimeError('Switch to the DESIGN workspace first.')
     ents = _current_entities()
     if not ents:
-        raise RuntimeError('Nothing selected. Select sketch curves, sketches, planar faces or flat patterns.')
+        raise RuntimeError('Nothing selected. Select sketch curves, sketches, planar faces, bodies or flat patterns.')
     opts = STATE['options']
+    log('info', 'Export started: %d selected, units %s, to %s' % (len(ents), opts.get('units'), opts.get('folder')))
     folder, results = export_entities(design, ents, opts)
     _last_results = results
+    _log_results(results)
+    ok = sum(1 for r in results if r.get('ok'))
+    log('ok' if ok == len(results) else 'warn', 'Export finished: %d of %d written' % (ok, len(results)))
     if opts.get('openFolder') and any(r.get('ok') for r in results):
         _open_folder(folder)
     return {'folder': folder, 'results': results}
@@ -630,6 +674,7 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                                               'selection': _selection_summary(),
                                               'results': _last_results,
                                               'update': _update_info,
+                                              'log': list(_LOG),
                                               'links': {'dashboard': DASHBOARD_URL,
                                                         'download': DOWNLOAD_URL,
                                                         'releases': RELEASES_URL}})
@@ -651,6 +696,7 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                 if dlg.showDialog() == adsk.core.DialogResults.DialogOK:
                     STATE['options']['folder'] = dlg.folder
                     save_settings(STATE)
+                    log('info', 'Export folder set to ' + dlg.folder)
                 args.returnData = json.dumps({'folder': STATE['options']['folder']})
             elif action == 'openFolder':
                 f = os.path.expanduser(STATE['options'].get('folder') or '')
@@ -664,6 +710,16 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                 if url.startswith('https://github.com/') or url.startswith('https://swami-claude-skills.github.io/'):
                     _open_url(url)
                 args.returnData = 'OK'
+            elif action == 'clearLog':
+                with _LOG_LOCK:
+                    _LOG.clear()
+                args.returnData = 'OK'
+            elif action == 'openLog':
+                path = _log_path()
+                if not os.path.exists(path):
+                    log('info', 'Log file created')
+                _open_folder(path)
+                args.returnData = json.dumps({'path': path})
             elif action == 'checkUpdate':
                 _start_update_check()
                 args.returnData = 'OK'
@@ -674,13 +730,16 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                 try:
                     args.returnData = json.dumps(_do_export())
                 except Exception as ex:
-                    args.returnData = json.dumps({'error': str(ex).strip().splitlines()[-1]})
+                    msg = str(ex).strip().splitlines()[-1]
+                    log('error', 'Export stopped: ' + msg)
+                    args.returnData = json.dumps({'error': msg})
             elif action == 'reset':
                 res = ui.messageBox('Reset all %s settings to defaults? This cannot be undone.' % TITLE,
                                     TITLE, adsk.core.MessageBoxButtonTypes.YesNoButtonType)
                 if res == adsk.core.DialogResults.DialogYes:
                     STATE = copy.deepcopy(DEFAULTS)
                     save_settings(STATE)
+                    log('info', 'Settings reset to defaults')
                     _push('stateChanged', {'version': VERSION, 'name': TITLE, 'state': STATE})
                 args.returnData = 'OK'
         except:
@@ -702,6 +761,17 @@ class UpdateInfoHandler(adsk.core.CustomEventHandler):
         global _update_info
         try:
             _update_info = json.loads(args.additionalInfo or '{}')
+            st = _update_info.get('state')
+            if st == 'current':
+                log('info', 'Update check: v%s is the latest' % VERSION)
+            elif st == 'newer':
+                log('info', 'Update check: v%s is available (you have v%s)' % (_update_info.get('latest'), VERSION))
+            elif st == 'error':
+                log('warn', 'Update check failed: %s' % _update_info.get('error'))
+            elif st == 'installed':
+                log('ok', 'Installed v%s (backup of v%s kept). Turn Run off and on in Shift+S to use it.' % (_update_info.get('installed'), VERSION))
+            elif st == 'installFailed':
+                log('error', 'Update install failed: %s' % _update_info.get('error'))
             _push('update', _update_info)
         except:
             pass
@@ -718,6 +788,7 @@ class ClosedHandler(adsk.core.UserInterfaceGeneralEventHandler):
 def run(context):
     global _update_event
     try:
+        log('info', '%s v%s started (Fusion %s, %s %s)' % (TITLE, VERSION, app.version, platform.system(), platform.release()))
         try:
             app.unregisterCustomEvent(UPDATE_EVENT_ID)
         except Exception:
