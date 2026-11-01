@@ -219,9 +219,8 @@
 </div>
 
 <div class="section" data-key="about">
-  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub">version · credit · reset</span></div>
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub">credit · reset</span></div>
   <div class="sec-body about">
-    <div class="ver" id="ver">Export Selected to DXF</div>
     <div>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</div>
     <button class="danger" id="resetBtn">reset to defaults</button>
   </div>
@@ -251,7 +250,7 @@ function reflectDest(){
 function applyState(payload){
   if(payload.version){
     const t = payload.name+' (v'+payload.version+')';
-    document.getElementById('ver').textContent = t; document.title = t;
+    document.title = t;
     document.getElementById('lnkVer').textContent = t; VERSION = payload.version;
   }
   STATE = payload.state || payload;
@@ -302,7 +301,7 @@ function renderLog(){
   if(atBottom) box.scrollTop = box.scrollHeight;
 }
 function logText(){
-  const head = (document.getElementById('ver').textContent||'Export Selected to DXF')+' log\n';
+  const head = (document.getElementById('lnkVer').textContent||'Export Selected to DXF')+' log\n';
   return head + LOG.map(e => e.d+' '+e.t+'  '+e.level.toUpperCase().padEnd(5)+'  '+e.msg).join('\n');
 }
 function copyText(txt){
