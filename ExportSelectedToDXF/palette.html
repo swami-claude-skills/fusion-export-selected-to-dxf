@@ -105,7 +105,8 @@
   .res li.bad .meta,.res li.skip .meta{color:var(--amber)}
   .empty{color:var(--text-mute);font-size:12px;padding:6px 0}
 
-  .sec-body.about{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+  .sec-body.about{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);flex-direction:column;align-items:flex-start;gap:8px}
+  .section.open .sec-body.about{display:flex}   /* hidden when closed, like every section */
   .sec-body.about .ver{color:var(--text-dim)}
 </style>
 </head>

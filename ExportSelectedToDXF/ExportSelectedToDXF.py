@@ -629,10 +629,18 @@ def _fit_palette(data):
     if abs(target - before) > 3:
         p.setSize(p.width, target)
     applied = abs(p.height - target) <= 3
-    try:
-        with open(os.path.join(_data_dir(), 'fit_debug.json'), 'w', encoding='utf-8') as f:
-            json.dump({'content': content, 'inner': inner, 'before': before, 'target': target,
-                       'after': p.height, 'cap': cap, 'docking': int(p.dockingState)}, f)
+    try:   # keep the last 40 adjustments for troubleshooting
+        path = os.path.join(_data_dir(), 'fit_debug.json')
+        try:
+            hist = json.load(open(path, encoding='utf-8'))
+            hist = hist if isinstance(hist, list) else [hist]
+        except Exception:
+            hist = []
+        hist.append({'t': datetime.datetime.now().strftime('%H:%M:%S'), 'content': content, 'inner': inner,
+                     'before': before, 'target': target, 'after': p.height, 'cap': cap,
+                     'docking': int(p.dockingState)})
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(hist[-40:], f)
     except Exception:
         pass
     return applied
