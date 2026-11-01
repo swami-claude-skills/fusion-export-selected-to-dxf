@@ -607,6 +607,24 @@ def _log_results(results):
 FIT_EXTRA = 0    # the page measures its own end exactly (Fusion's Close bar sits outside the page)
 
 
+def _place_top_right(p, margin=12):
+    """Put the floating palette in the top-right corner of Fusion's canvas.
+    Screen positions can use different units from sizes (Retina), so the scale is
+    measured from the viewport itself."""
+    try:
+        vp = app.activeViewport
+        tl = vp.viewToScreen(adsk.core.Point2D.create(0, 0))
+        tr = vp.viewToScreen(adsk.core.Point2D.create(vp.width, 0))
+        if not tl or not tr or vp.width <= 0:
+            return
+        scale = (tr.x - tl.x) / float(vp.width)
+        if scale <= 0:
+            return
+        p.setPosition(int(round(tr.x - (p.width + margin) * scale)), int(round(tl.y + margin * scale)))
+    except Exception:
+        pass
+
+
 def _fit_palette(data):
     """Resize the palette so its height matches the open sections (floating palettes;
     a docked palette may keep the height its dock gives it). Uses the page's own
@@ -697,8 +715,9 @@ class CmdCreatedHandler(adsk.core.CommandCreatedEventHandler):
             if palette is None:
                 palette = ui.palettes.add(PALETTE_ID, '%s (v%s)' % (TITLE, VERSION), PALETTE_URL,
                                           True, True, True, 380, 640)
-                # Left floating (Fusion restores where you last put it): a docked palette's
-                # height is locked, which stops the panel from fitting its contents.
+                # Left floating: a docked palette's height is locked, which stops the panel
+                # from fitting its contents. It opens in the top-right corner of the canvas.
+                _place_top_right(palette)
                 h = HtmlHandler();   palette.incomingFromHTML.add(h); _handlers.append(h)
                 c = ClosedHandler(); palette.closed.add(c);           _handlers.append(c)
             else:
