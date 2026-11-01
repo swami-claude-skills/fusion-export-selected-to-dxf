@@ -7,7 +7,7 @@ import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowse
 import io, shutil, zipfile
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.3.0'
+VERSION    = '1.3.1'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -209,23 +209,47 @@ def _partial_sketch_export(design, sketch, curves, path, opts):
             pass
 
 
-def _flat_pattern_of(e):
-    """Return a FlatPattern for a FlatPattern, sheet-metal body, occurrence or component."""
-    if e.objectType == adsk.fusion.FlatPattern.classType():
-        return adsk.fusion.FlatPattern.cast(e)
-    comp = None
+def _sheet_metal_body(comp):
+    """First sheet-metal body in a component, or None."""
+    try:
+        for b in comp.bRepBodies:
+            if getattr(b, 'isSheetMetal', False):
+                return b
+    except Exception:
+        pass
+    return None
+
+
+def _flat_job(e):
+    """For a sheet-metal selection, describe how to get its flat pattern:
+    {'fp': existing FlatPattern or None, 'comp': component, 'body': native sheet-metal body}.
+    Returns None when the selection isn't sheet metal."""
     t = e.objectType
-    if t == adsk.fusion.Occurrence.classType():
+    if t == adsk.fusion.FlatPattern.classType():
+        fp = adsk.fusion.FlatPattern.cast(e)
+        return {'fp': fp, 'comp': fp.parentComponent, 'body': None}
+    comp, body = None, None
+    if t == adsk.fusion.BRepBody.classType():
+        body = _native(adsk.fusion.BRepBody.cast(e))
+        if not getattr(body, 'isSheetMetal', False):
+            return None
+        comp = body.parentComponent
+    elif t == adsk.fusion.Occurrence.classType():
         comp = adsk.fusion.Occurrence.cast(e).component
     elif t == adsk.fusion.Component.classType():
         comp = adsk.fusion.Component.cast(e)
-    elif t == adsk.fusion.BRepBody.classType():
-        b = adsk.fusion.BRepBody.cast(e)
-        comp = _native(b).parentComponent
-    try:
-        return comp.flatPattern if comp else None
-    except Exception:
+    if comp is None:
         return None
+    fp = None
+    try:
+        fp = comp.flatPattern
+    except Exception:
+        fp = None
+    if fp is None:
+        body = body or _sheet_metal_body(comp)
+        if body is None:
+            return None
+    return {'fp': fp, 'comp': comp, 'body': body}
 
 
 def _export_flat(design, fp, path, opts):
@@ -288,12 +312,12 @@ def classify(entities):
                 else:
                     faces.append((f, None))
                 continue
-            fp = _flat_pattern_of(e)
-            if fp is not None:
-                key = fp.entityToken
+            job = _flat_job(e)
+            if job is not None:
+                key = job['comp'].entityToken
                 if key not in seen_fp:
                     seen_fp.add(key)
-                    flats.append(fp)
+                    flats.append(job)
                 continue
             if t == adsk.fusion.BRepBody.classType():
                 f = _largest_planar_face(adsk.fusion.BRepBody.cast(e))
@@ -365,20 +389,35 @@ def export_entities(design, entities, opts):
             r['error'] = str(ex).strip().splitlines()[-1]
         results.append(r)
 
-    for fp in flats:
-        try:
-            comp_name = fp.parentComponent.name
-        except Exception:
-            comp_name = ''
+    for job in flats:
+        comp = job['comp']
+        comp_name = getattr(comp, 'name', '') or ''
         r = {'kind': 'flat pattern', 'name': 'Flat Pattern', 'component': comp_name}
+        fp, made = job['fp'], False
         try:
             path = _target_path(folder, comp_name, 'Flat Pattern', opts)
+            if fp is None:
+                # No flat pattern yet: make a temporary one, stationary face = largest flat face.
+                face = _largest_planar_face(job['body'])
+                if face is None:
+                    raise RuntimeError('the sheet-metal body has no flat face to unfold from')
+                fp = comp.createFlatPattern(face)
+                if fp is None:
+                    raise RuntimeError('Fusion could not create a flat pattern for this part')
+                made = True
+                r['note'] = 'temporary flat pattern'
             _export_flat(design, fp, path, opts)
             r['file'] = path
             r['ok'] = True
         except Exception as ex:
             r['ok'] = False
             r['error'] = str(ex).strip().splitlines()[-1]
+        finally:
+            if made:
+                try:
+                    fp.deleteMe()
+                except Exception:
+                    r['note'] = 'temporary flat pattern could not be removed; delete it in the browser'
         results.append(r)
 
     for s in skipped:

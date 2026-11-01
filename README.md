@@ -20,7 +20,7 @@ Units (design, mm, cm, m, in, ft), file naming, overwrite or auto-number, and wh
 
 1. Download **ExportSelectedToDXF.zip** and unzip it. Put the **ExportSelectedToDXF** folder somewhere it can stay (for example a Fusion add-ins folder in Documents) — Fusion runs it from there.
 2. In Fusion press **Shift+S** to open **Scripts and Add-Ins**, click the **+** next to **My Add-Ins**, and choose the **ExportSelectedToDXF** folder.
-3. Select **ExportSelectedToDXF**, tick **Run on Startup**, and click **Run**.
+3. Turn on **Run on Startup** and **Run** for **ExportSelectedToDXF**.
 
 This way nothing has to be approved in macOS Settings, because no installer script runs.
 
@@ -30,7 +30,7 @@ The button is in DESIGN under **SOLID ▸ CREATE** and **UTILITIES ▸ ADD-INS**
 
 ## Updating
 
-When the panel opens it checks [`version.json`](version.json). If a newer version exists, a green banner offers **install update**: the add-in downloads the new version from this repository, backs up the current one, and replaces its own files. Then press **Shift+S**, select ExportSelectedToDXF, click **Stop**, then **Run** (or restart Fusion). Your settings are kept. Versions before 1.3.0 don't have the button; update those by downloading the zip and replacing the folder.
+When the panel opens it checks [`version.json`](version.json). If a newer version exists, a green banner offers **install update**: the add-in downloads the new version from this repository, backs up the current one, and replaces its own files. Then press **Shift+S** and turn ExportSelectedToDXF's **Run** switch off, then on (or restart Fusion). Your settings are kept. Versions before 1.3.0 don't have the button; update those by downloading the zip and replacing the folder.
 
 ## Repository layout
 
