@@ -26,7 +26,7 @@
   h1{font-size:15px;font-weight:700;margin-top:4px}
 
   /* selection + main action — always visible */
-  .action{padding:12px;border-bottom:1px solid var(--border)}
+  .sec-body.action{padding:2px 12px 14px}
   .selbox{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:11.5px;color:var(--text-dim)}
   .selbox .big{font-size:20px;font-weight:700;color:var(--cyan);margin-right:6px}
   .selbox .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
@@ -41,6 +41,12 @@
   .links{display:flex;gap:14px;margin-top:6px;font-family:var(--mono);font-size:11px}
   .links a{color:var(--text-dim);border-bottom:1px dotted var(--text-mute)}
   .links a:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
+  .links a{position:relative}
+  .links a[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 7px);z-index:60;
+    width:230px;max-width:calc(100vw - 30px);white-space:normal;background:var(--panel-2);border:1px solid var(--cyan);
+    color:var(--text);font-family:var(--sans);font-size:11.5px;line-height:1.45;padding:7px 9px;border-radius:6px;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:none}
+  .links a.tip-right[data-tip]:hover::after{left:auto;right:0}
   #updBanner{display:none;margin:10px 12px 0;padding:9px 11px;border:1px solid var(--green);border-radius:8px;
     background:rgba(0,255,136,.08);font-size:12px;color:var(--text)}
   #updBanner b{color:var(--green)}
@@ -55,7 +61,7 @@
   #logBox .lm{color:var(--text-dim)}
   #logBox .l-ok .lm{color:var(--green)} #logBox .l-warn .lm{color:var(--amber)} #logBox .l-error .lm{color:var(--red)}
   #logBox .lempty{color:var(--text-mute)}
-  .logbar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .logbar{display:flex;gap:6px;margin:4px 0 8px;flex-wrap:wrap}
   #logFilter{width:88px;flex:none;padding:5px 6px;font-size:11px}
   .logbar button{padding:6px 9px}
   #updLine{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:8px}
@@ -111,7 +117,11 @@
 <div class="head">
   <div class="kicker">Fusion · DXF export</div>
   <h1 id="title">Export Selected to DXF</h1>
-  <div class="links"><a id="lnkDash">dashboard</a><a id="lnkDl">download latest</a><a id="lnkRel">all versions</a></div>
+  <div class="links">
+    <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
+    <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
+    <a id="lnkRel" class="tip-right" data-tip="See every released version and its release notes on GitHub.">all versions</a>
+  </div>
 </div>
 
 <div id="updBanner">
@@ -119,11 +129,14 @@
   <div class="row2" id="updBtns"><button id="updInstall">install update</button><button id="updDl">download</button><button id="updWhat">what's new</button></div>
 </div>
 
-<div class="action">
+<div class="section" data-key="export">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Export</span><span class="sec-sub" id="exportSub">—</span></div>
+  <div class="sec-body action">
   <div class="selbox" id="selbox"><span class="big">0</span>selected</div>
   <button id="exportBtn">EXPORT SELECTED</button>
   <div class="dest">to <b id="destShow">…</b> · units <b id="unitShow">…</b></div>
   <div id="status"></div>
+  </div>
 </div>
 
 <div class="section" data-key="output">
@@ -194,13 +207,13 @@
 <div class="section" data-key="log">
   <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Log</span><span class="sec-sub" id="logSub">—</span></div>
   <div class="sec-body">
-    <div id="logBox"><div class="lempty">Nothing logged yet.</div></div>
     <div class="logbar">
       <select id="logFilter" title="Show"><option value="all">all</option><option value="problems">problems</option></select>
       <button id="logCopy">copy</button>
       <button id="logOpen" title="Open log.txt (the full history)">open log file</button>
       <button id="logClear" title="Clear this view (the log file keeps everything)">clear</button>
     </div>
+    <div id="logBox"><div class="lempty">Nothing logged yet.</div></div>
     <div class="hint">Every export, update check and error is listed here and saved to log.txt in the add-in's settings folder. If something goes wrong, click <b>copy</b> and paste it into a message.</div>
   </div>
 </div>
@@ -268,6 +281,7 @@ function applySelection(s){
     (s.count? ' → '+files+' file'+(files===1?'':'s') : ' — pick sketch curves, sketches, faces, bodies or flat patterns')+
     (chips.length? '<div class="chips">'+chips.join('')+'</div>' : '');
   document.getElementById('exportBtn').disabled = !files;
+  document.getElementById('exportSub').textContent = (s.count||0)+' selected'+(s.count? ' → '+files+' file'+(files===1?'':'s') : '');
 }
 
 function renderLog(){
@@ -397,6 +411,24 @@ document.getElementById('updDl').addEventListener('click', ()=>openUrl((UPD.zip)
 document.getElementById('updWhat').addEventListener('click', ()=>openUrl(LINKS.releases));
 document.getElementById('updCheck').addEventListener('click', ()=>send('checkUpdate',{}));
 document.getElementById('updInstall').addEventListener('click', ()=>send('installUpdate',{}));
+
+// ---- fit the palette's height to the open sections ----
+let fitTimer = null, lastFit = 0;
+function contentHeight(){
+  const f = document.querySelector('footer');
+  return Math.ceil(f.getBoundingClientRect().bottom + window.scrollY + 8);
+}
+function fitPalette(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(()=>{
+    const h = contentHeight();
+    if(Math.abs(h - lastFit) < 3) return;
+    lastFit = h;
+    try{ send('fitHeight', {content:h, inner:window.innerHeight}); }catch(e){}
+  }, 120);
+}
+if(window.ResizeObserver){ new ResizeObserver(fitPalette).observe(document.body); }
+window.addEventListener('load', fitPalette);
 
 window.fusionJavaScriptHandler = { handle(action, dataStr){
   try{
