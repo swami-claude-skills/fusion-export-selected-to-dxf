@@ -256,7 +256,8 @@ function applyState(payload){
   });
   const col = (STATE.ui && STATE.ui.collapsed)||{};
   document.querySelectorAll('.section').forEach(sec=>{
-    const key=sec.dataset.key; sec.classList.toggle('open', key in col ? !col[key] : false);
+    const key=sec.dataset.key;
+    sec.classList.toggle('open', key==='log' ? false : (key in col ? !col[key] : false));   // Log always starts closed
   });
   reflectDest();
   if(payload.selection) applySelection(payload.selection);
@@ -330,6 +331,7 @@ function applyResults(results){
 document.querySelectorAll('.section').forEach(sec=>{
   sec.querySelector('.sec-head').addEventListener('click', ()=>{
     sec.classList.toggle('open');
+    if(sec.dataset.key==='log') return;   // not remembered: Log always starts closed
     const patch={ui:{collapsed:{}}}; patch.ui.collapsed[sec.dataset.key]=!sec.classList.contains('open');
     send('setState', patch);
   });
@@ -422,12 +424,14 @@ function fitPalette(){
   clearTimeout(fitTimer);
   fitTimer = setTimeout(()=>{
     const h = contentHeight();
-    if(Math.abs(h - lastFit) < 3) return;
-    lastFit = h;
+    const key = h + ':' + window.innerHeight;
+    if(key === lastFit) return;
+    lastFit = key;
     try{ send('fitHeight', {content:h, inner:window.innerHeight}); }catch(e){}
   }, 120);
 }
 if(window.ResizeObserver){ new ResizeObserver(fitPalette).observe(document.body); }
+window.addEventListener('resize', ()=>{ lastFit = 0; fitPalette(); });
 window.addEventListener('load', fitPalette);
 
 window.fusionJavaScriptHandler = { handle(action, dataStr){

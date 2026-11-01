@@ -604,26 +604,36 @@ def _log_results(results):
             log('error', '%s %s failed: %s' % (r.get('kind'), name, r.get('error')))
 
 
+FIT_EXTRA = 56   # room for Fusion's bottom Close bar, which can overlap the page
+
+
 def _fit_palette(data):
     """Resize the palette so its height matches the open sections (floating palettes;
-    a docked palette may keep the height its dock gives it)."""
+    a docked palette may keep the height its dock gives it). Uses the page's own
+    measurement of how much it overflows (or has spare), so no guess about the
+    palette's title bar is needed; the page re-measures after each resize."""
     p = _palette()
     if not p:
         return
     content = int(data.get('content') or 0)
     inner = int(data.get('inner') or 0)
-    if content <= 0:
+    if content <= 0 or inner <= 0:
         return
-    chrome = p.height - inner if inner and 0 < p.height - inner < 200 else 48
     cap = 1100
     try:
-        vp = app.activeViewport
-        cap = max(400, int(vp.height) + 140)
+        cap = max(400, int(app.activeViewport.height) + 140)
     except Exception:
         pass
-    target = max(220, min(content + chrome, cap))
-    if abs(target - p.height) > 3:
+    before = p.height
+    target = max(240, min(before + (content + FIT_EXTRA - inner), cap))
+    if abs(target - before) > 3:
         p.setSize(p.width, target)
+    try:
+        with open(os.path.join(_data_dir(), 'fit_debug.json'), 'w', encoding='utf-8') as f:
+            json.dump({'content': content, 'inner': inner, 'before': before, 'target': target,
+                       'after': p.height, 'cap': cap, 'docking': int(p.dockingState)}, f)
+    except Exception:
+        pass
 
 
 def _current_entities():
