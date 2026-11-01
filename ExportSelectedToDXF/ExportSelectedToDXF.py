@@ -604,7 +604,7 @@ def _log_results(results):
             log('error', '%s %s failed: %s' % (r.get('kind'), name, r.get('error')))
 
 
-FIT_EXTRA = 56   # room for Fusion's bottom Close bar, which can overlap the page
+FIT_EXTRA = 6    # small breathing room below the footer (Fusion's Close bar sits outside the page)
 
 
 def _fit_palette(data):
