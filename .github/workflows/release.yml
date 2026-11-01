@@ -47,6 +47,18 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check the documentation is for this version
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          want="${{ steps.ver.outputs.tag }}"; want="${want#v}"
+          have=$(grep -o '<meta name="addin-version" content="[^"]*">' docs/index.html | sed 's/.*content="\([^"]*\)".*/\1/')
+          if [ "$have" != "$want" ]; then
+            echo "::error::docs/index.html is for v${have:-unknown}, add-in is v$want. Run tools/build_docs.py and update the docs before releasing."
+            exit 1
+          fi
+          grep -q "<span class=\"lbl\">v$want" docs/index.html || { echo "::error::What's New in docs/index.html has no entry for v$want."; exit 1; }
+          echo "Documentation matches v$want"
+
       - name: Build the zip
         if: steps.check.outputs.skip != 'true'
         run: python3 tools/build_release.py

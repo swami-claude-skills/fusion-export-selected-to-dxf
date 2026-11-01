@@ -2,7 +2,7 @@
 
 An Autodesk Fusion add-in that exports whatever you have selected as **one DXF file per item**, from a dark dockable panel.
 
-**[⬇ Download the latest version](https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip)** · **[Dashboard](https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/)** · **[All versions](https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases)**
+**[⬇ Download the latest version](https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip)** · **[Documentation](https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/)** · **[All versions](https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases)**
 
 ## What you can select
 
@@ -40,10 +40,17 @@ When the panel opens it checks [`version.json`](version.json). If a newer versio
 |---|---|
 | `ExportSelectedToDXF/` | The add-in itself (what the zip contains) |
 | `version.json` | Latest version number, read by the add-in's update check |
-| `docs/index.html` | The dashboard, served by GitHub Pages |
+| `docs/index.html` | The documentation, served by GitHub Pages |
 | `tools/build_release.py` | Builds `dist/ExportSelectedToDXF.zip` and refreshes `version.json` |
-| `notes/vX.Y.Z.md` | Release notes for each version |
-| `.github/workflows/release.yml` | When a new version reaches main, builds the zip and publishes the release |
+| `notes/vX.Y.Z.md` | Release notes for each version (first line: `Released: <date>`) |
+| `tools/build_docs.py` | Fills the documentation's version, date and What's New from the add-in and the notes |
+| `.github/workflows/release.yml` | When a new version reaches main, checks the documentation is for that version, builds the zip and publishes the release |
+
+## Releasing
+
+1. Bump `VERSION` in the add-in and the manifest, and write `notes/vX.Y.Z.md`.
+2. Update the documentation's content, then run `python3 tools/build_docs.py docs/index.html` to fill in the version, date and What's New.
+3. Run `python3 tools/build_release.py` and push to `main`. The workflow refuses to publish if the documentation is for a different version.
 
 Each release attaches the zip under the fixed name `ExportSelectedToDXF.zip`, so the download link above always gives the newest version.
 

@@ -7,7 +7,7 @@ import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowse
 import io, shutil, zipfile, datetime, platform
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.4.0'
+VERSION    = '1.5.0'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -57,7 +57,8 @@ DEFAULTS = {
         'polyTolerance': 0.01,        # in mm
         'checkUpdates': True,         # look for a newer version when the panel opens
     },
-    'ui': {'collapsed': {'output': True, 'sketch': True, 'flat': True, 'updates': True, 'results': True, 'log': True}},
+    'ui': {'collapsed': {'export': False, 'output': True, 'sketch': True, 'flat': True, 'updates': True,
+                         'results': True, 'log': True}},
 }
 
 
@@ -603,6 +604,38 @@ def _log_results(results):
             log('error', '%s %s failed: %s' % (r.get('kind'), name, r.get('error')))
 
 
+FIT_EXTRA = 6    # small breathing room below the footer (Fusion's Close bar sits outside the page)
+
+
+def _fit_palette(data):
+    """Resize the palette so its height matches the open sections (floating palettes;
+    a docked palette may keep the height its dock gives it). Uses the page's own
+    measurement of how much it overflows (or has spare), so no guess about the
+    palette's title bar is needed; the page re-measures after each resize."""
+    p = _palette()
+    if not p:
+        return
+    content = int(data.get('content') or 0)
+    inner = int(data.get('inner') or 0)
+    if content <= 0 or inner <= 0:
+        return
+    cap = 1100
+    try:
+        cap = max(400, int(app.activeViewport.height) + 140)
+    except Exception:
+        pass
+    before = p.height
+    target = max(240, min(before + (content + FIT_EXTRA - inner), cap))
+    if abs(target - before) > 3:
+        p.setSize(p.width, target)
+    try:
+        with open(os.path.join(_data_dir(), 'fit_debug.json'), 'w', encoding='utf-8') as f:
+            json.dump({'content': content, 'inner': inner, 'before': before, 'target': target,
+                       'after': p.height, 'cap': cap, 'docking': int(p.dockingState)}, f)
+    except Exception:
+        pass
+
+
 def _current_entities():
     sels = ui.activeSelections
     return [sels.item(i).entity for i in range(sels.count)]
@@ -709,6 +742,9 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                 url = str(data.get('url', ''))
                 if url.startswith('https://github.com/') or url.startswith('https://swami-claude-skills.github.io/'):
                     _open_url(url)
+                args.returnData = 'OK'
+            elif action == 'fitHeight':
+                _fit_palette(data)
                 args.returnData = 'OK'
             elif action == 'clearLog':
                 with _LOG_LOCK:
