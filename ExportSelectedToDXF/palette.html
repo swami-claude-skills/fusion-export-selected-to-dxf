@@ -38,11 +38,11 @@
   #exportBtn:disabled{opacity:.4;cursor:default}
   .dest{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--text-mute);word-break:break-all}
   .dest b{color:var(--text-dim);font-weight:400}
-  .links{display:flex;gap:6px 14px;margin-top:6px;font-family:var(--mono);font-size:11px;flex-wrap:wrap}
+  .links{display:flex;gap:6px 14px;margin-top:2px;font-family:var(--mono);font-size:11px;flex-wrap:wrap}
   .links a{color:var(--text-dim);border-bottom:1px dotted var(--text-mute)}
   .links a:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
   .links a{position:relative}
-  .links a[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 7px);z-index:60;
+  .links a[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 7px);z-index:60;
     width:230px;max-width:calc(100vw - 30px);white-space:normal;background:var(--panel-2);border:1px solid var(--cyan);
     color:var(--text);font-family:var(--sans);font-size:11.5px;line-height:1.45;padding:7px 9px;border-radius:6px;
     box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:none}
@@ -116,12 +116,6 @@
 <div class="head">
   <div class="kicker">Fusion · DXF export</div>
   <h1 id="title">Export Selected to DXF</h1>
-  <div class="links">
-    <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
-    <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
-    <a id="lnkRel" class="tip-right" data-tip="See every released version and its release notes on GitHub.">all versions</a>
-    <a id="lnkVer" data-tip="Release notes for the version you have installed, on GitHub.">Export Selected to DXF</a>
-  </div>
 </div>
 
 <div id="updBanner">
@@ -219,8 +213,14 @@
 </div>
 
 <div class="section" data-key="about">
-  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub">credit · reset</span></div>
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub" id="aboutSub">links · credit · reset</span></div>
   <div class="sec-body about">
+    <div class="links">
+      <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
+      <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
+      <a id="lnkRel" class="tip-right" data-tip="See every released version and its release notes on GitHub.">all versions</a>
+      <a id="lnkVer" data-tip="Release notes for the version you have installed, on GitHub.">Export Selected to DXF</a>
+    </div>
     <div>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</div>
     <button class="danger" id="resetBtn">reset to defaults</button>
   </div>
@@ -252,6 +252,7 @@ function applyState(payload){
     const t = payload.name+' (v'+payload.version+')';
     document.title = t;
     document.getElementById('lnkVer').textContent = t; VERSION = payload.version;
+    document.getElementById('aboutSub').textContent = 'v'+payload.version+' · links · reset';
   }
   STATE = payload.state || payload;
   const o = STATE.options||{};
