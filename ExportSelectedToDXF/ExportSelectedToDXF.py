@@ -607,20 +607,28 @@ def _log_results(results):
 FIT_EXTRA = 0    # the page measures its own end exactly (Fusion's Close bar sits outside the page)
 
 
-def _place_top_right(p, margin=12):
-    """Put the floating palette in the top-right corner of Fusion's canvas.
-    Screen positions can use different units from sizes (Retina), so the scale is
-    measured from the viewport itself."""
+def _canvas_rect():
+    """(left, top, width, height) of Fusion's canvas in palette-position units, or None.
+    The canvas origin comes from viewToScreen(0,0); its size from the viewport, which is
+    in the same units as palette positions (checked on a Retina Mac)."""
     try:
         vp = app.activeViewport
         tl = vp.viewToScreen(adsk.core.Point2D.create(0, 0))
-        tr = vp.viewToScreen(adsk.core.Point2D.create(vp.width, 0))
-        if not tl or not tr or vp.width <= 0:
-            return
-        scale = (tr.x - tl.x) / float(vp.width)
-        if scale <= 0:
-            return
-        p.setPosition(int(round(tr.x - (p.width + margin) * scale)), int(round(tl.y + margin * scale)))
+        if not tl or vp.width <= 0 or vp.height <= 0:
+            return None
+        return int(tl.x), int(tl.y), int(vp.width), int(vp.height)
+    except Exception:
+        return None
+
+
+def _place_top_right(p, margin=12):
+    """Put the floating palette in the top-right corner of Fusion's canvas."""
+    r = _canvas_rect()
+    if not r:
+        return
+    left, top, width, _ = r
+    try:
+        p.setPosition(left + width - p.width - margin, top + margin)
     except Exception:
         pass
 
@@ -638,10 +646,9 @@ def _fit_palette(data):
     if content <= 0 or inner <= 0:
         return
     cap = 1100
-    try:
-        cap = max(400, int(app.activeViewport.height) + 140)
-    except Exception:
-        pass
+    r = _canvas_rect()
+    if r:   # never taller than the room between the panel's top and the bottom of the canvas
+        cap = max(300, r[1] + r[3] - p.top - 12)
     before = p.height
     target = max(240, min(before + (content + FIT_EXTRA - inner), cap))
     if abs(target - before) > 3:
@@ -733,7 +740,9 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
             action = args.action
             data = json.loads(args.data) if args.data else {}
             if action in ('ready', 'getState'):
-                args.returnData = json.dumps({'version': VERSION, 'name': TITLE, 'state': STATE,
+                shown = copy.deepcopy(STATE)
+                shown['ui']['collapsed'] = copy.deepcopy(DEFAULTS['ui']['collapsed'])   # always open as default
+                args.returnData = json.dumps({'version': VERSION, 'name': TITLE, 'state': shown,
                                               'selection': _selection_summary(),
                                               'results': _last_results,
                                               'update': _update_info,

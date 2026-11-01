@@ -1,7 +1,7 @@
 {
   "version": "1.5.1",
   "date": "Nov 1, 2026",
-  "notes": "About section with documentation, Release Notes, download latest and all versions; reset in the top-right corner; opens top-right; panel height fixed.",
+  "notes": "About section with documentation, Release Notes, download latest and all versions; reset top-right; opens top-right with default sections; panel height fixed.",
   "zip": "https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip",
   "dashboard": "https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/"
 }
