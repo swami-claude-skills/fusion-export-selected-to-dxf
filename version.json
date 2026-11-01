@@ -1,7 +1,7 @@
 {
-  "version": "1.5.0",
+  "version": "1.5.1",
   "date": "Nov 1, 2026",
-  "notes": "Collapsible Export section, panel height fits open sections, documentation link with tooltips, log controls on top.",
+  "notes": "Version link in the header, About section (closed), panel height retries until it fits.",
   "zip": "https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip",
   "dashboard": "https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/"
 }

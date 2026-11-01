@@ -7,7 +7,7 @@ import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowse
 import io, shutil, zipfile, datetime, platform
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.5.0'
+VERSION    = '1.5.1'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -58,7 +58,7 @@ DEFAULTS = {
         'checkUpdates': True,         # look for a newer version when the panel opens
     },
     'ui': {'collapsed': {'export': False, 'output': True, 'sketch': True, 'flat': True, 'updates': True,
-                         'results': True, 'log': True}},
+                         'results': True, 'log': True, 'about': True}},
 }
 
 
@@ -628,12 +628,14 @@ def _fit_palette(data):
     target = max(240, min(before + (content + FIT_EXTRA - inner), cap))
     if abs(target - before) > 3:
         p.setSize(p.width, target)
+    applied = abs(p.height - target) <= 3
     try:
         with open(os.path.join(_data_dir(), 'fit_debug.json'), 'w', encoding='utf-8') as f:
             json.dump({'content': content, 'inner': inner, 'before': before, 'target': target,
                        'after': p.height, 'cap': cap, 'docking': int(p.dockingState)}, f)
     except Exception:
         pass
+    return applied
 
 
 def _current_entities():
@@ -744,8 +746,7 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                     _open_url(url)
                 args.returnData = 'OK'
             elif action == 'fitHeight':
-                _fit_palette(data)
-                args.returnData = 'OK'
+                args.returnData = json.dumps({'applied': bool(_fit_palette(data))})
             elif action == 'clearLog':
                 with _LOG_LOCK:
                     _LOG.clear()

@@ -38,7 +38,7 @@
   #exportBtn:disabled{opacity:.4;cursor:default}
   .dest{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--text-mute);word-break:break-all}
   .dest b{color:var(--text-dim);font-weight:400}
-  .links{display:flex;gap:14px;margin-top:6px;font-family:var(--mono);font-size:11px}
+  .links{display:flex;gap:6px 14px;margin-top:6px;font-family:var(--mono);font-size:11px;flex-wrap:wrap}
   .links a{color:var(--text-dim);border-bottom:1px dotted var(--text-mute)}
   .links a:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
   .links a{position:relative}
@@ -105,9 +105,8 @@
   .res li.bad .meta,.res li.skip .meta{color:var(--amber)}
   .empty{color:var(--text-mute);font-size:12px;padding:6px 0}
 
-  footer{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);padding:12px;
-    display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  footer .ver{color:var(--text-dim)}
+  .sec-body.about{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+  .sec-body.about .ver{color:var(--text-dim)}
 </style>
 </head>
 <body>
@@ -121,6 +120,7 @@
     <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
     <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
     <a id="lnkRel" class="tip-right" data-tip="See every released version and its release notes on GitHub.">all versions</a>
+    <a id="lnkVer" data-tip="Release notes for the version you have installed, on GitHub.">Export Selected to DXF</a>
   </div>
 </div>
 
@@ -218,15 +218,20 @@
   </div>
 </div>
 
-<footer>
-  <span class="ver" id="ver">Export Selected to DXF</span>
-  <span>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</span>
-  <button class="danger" id="resetBtn">reset to defaults</button>
-</footer>
+<div class="section" data-key="about">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub">version · credit · reset</span></div>
+  <div class="sec-body about">
+    <div class="ver" id="ver">Export Selected to DXF</div>
+    <div>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</div>
+    <button class="danger" id="resetBtn">reset to defaults</button>
+  </div>
+</div>
+<div id="pageEnd"></div>
 
 <script>
 let STATE = {};
 let LOG = [];
+let VERSION = '';
 let LINKS = {};
 let UPD = {};
 const UNIT_LABEL = {design:'design', mm:'mm', cm:'cm', m:'m', in:'in', ft:'ft'};
@@ -247,6 +252,7 @@ function applyState(payload){
   if(payload.version){
     const t = payload.name+' (v'+payload.version+')';
     document.getElementById('ver').textContent = t; document.title = t;
+    document.getElementById('lnkVer').textContent = t; VERSION = payload.version;
   }
   STATE = payload.state || payload;
   const o = STATE.options||{};
@@ -409,6 +415,7 @@ function applyUpdate(u){
 document.getElementById('lnkDash').addEventListener('click', ()=>openUrl((UPD.dashboard)||LINKS.dashboard));
 document.getElementById('lnkDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
 document.getElementById('lnkRel').addEventListener('click', ()=>openUrl(LINKS.releases));
+document.getElementById('lnkVer').addEventListener('click', ()=>openUrl(LINKS.releases + (VERSION ? '/tag/v'+VERSION : '')));
 document.getElementById('updDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
 document.getElementById('updWhat').addEventListener('click', ()=>openUrl(LINKS.releases));
 document.getElementById('updCheck').addEventListener('click', ()=>send('checkUpdate',{}));
@@ -417,9 +424,10 @@ document.getElementById('updInstall').addEventListener('click', ()=>send('instal
 // ---- fit the palette's height to the open sections ----
 let fitTimer = null, lastFit = 0;
 function contentHeight(){
-  const f = document.querySelector('footer');
+  const f = document.getElementById('pageEnd');
   return Math.ceil(f.getBoundingClientRect().bottom + window.scrollY + 8);
 }
+let fitRetries = 0;
 function fitPalette(){
   clearTimeout(fitTimer);
   fitTimer = setTimeout(()=>{
@@ -427,12 +435,20 @@ function fitPalette(){
     const key = h + ':' + window.innerHeight;
     if(key === lastFit) return;
     lastFit = key;
-    try{ send('fitHeight', {content:h, inner:window.innerHeight}); }catch(e){}
+    try{
+      send('fitHeight', {content:h, inner:window.innerHeight}).then(r=>{
+        let d={}; try{ d=JSON.parse(r||'{}'); }catch(e){}
+        // Fusion can refuse a resize (e.g. while the panel is still docking): try again shortly
+        if(d.applied===false && fitRetries < 8){ fitRetries++; setTimeout(()=>{ lastFit=0; fitPalette(); }, 700); }
+        else if(d.applied) fitRetries = 0;
+      });
+    }catch(e){}
   }, 120);
 }
 if(window.ResizeObserver){ new ResizeObserver(fitPalette).observe(document.body); }
 window.addEventListener('resize', ()=>{ lastFit = 0; fitPalette(); });
 window.addEventListener('load', fitPalette);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ lastFit=0; fitPalette(); } });
 
 window.fusionJavaScriptHandler = { handle(action, dataStr){
   try{
