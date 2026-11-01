@@ -604,7 +604,7 @@ def _log_results(results):
             log('error', '%s %s failed: %s' % (r.get('kind'), name, r.get('error')))
 
 
-FIT_EXTRA = 6    # small breathing room below the footer (Fusion's Close bar sits outside the page)
+FIT_EXTRA = 0    # the page measures its own end exactly (Fusion's Close bar sits outside the page)
 
 
 def _fit_palette(data):
@@ -697,7 +697,8 @@ class CmdCreatedHandler(adsk.core.CommandCreatedEventHandler):
             if palette is None:
                 palette = ui.palettes.add(PALETTE_ID, '%s (v%s)' % (TITLE, VERSION), PALETTE_URL,
                                           True, True, True, 380, 640)
-                palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
+                # Left floating (Fusion restores where you last put it): a docked palette's
+                # height is locked, which stops the panel from fitting its contents.
                 h = HtmlHandler();   palette.incomingFromHTML.add(h); _handlers.append(h)
                 c = ClosedHandler(); palette.closed.add(c);           _handlers.append(c)
             else:

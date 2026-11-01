@@ -15,13 +15,14 @@
     --sans: system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:0 0 8px;overflow-x:hidden}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:0;overflow-x:hidden}
   a{color:var(--cyan);text-decoration:none;cursor:pointer}
 
   #errStrip{display:none;background:rgba(255,92,122,.12);border-bottom:1px solid var(--red);
     color:var(--red);font-family:var(--mono);font-size:11px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;cursor:pointer}
 
-  .head{padding:12px;border-bottom:1px solid var(--border)}
+  .head{padding:12px;border-bottom:1px solid var(--border);position:relative}
+  .head #resetBtn{position:absolute;top:10px;right:12px;padding:4px 8px;font-size:10.5px}
   .kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
   h1{font-size:15px;font-weight:700;margin-top:4px}
 
@@ -38,7 +39,7 @@
   #exportBtn:disabled{opacity:.4;cursor:default}
   .dest{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--text-mute);word-break:break-all}
   .dest b{color:var(--text-dim);font-weight:400}
-  .links{display:flex;gap:6px 14px;margin-top:2px;font-family:var(--mono);font-size:11px;flex-wrap:wrap}
+  .links{display:flex;gap:6px 14px;font-family:var(--mono);font-size:11px;flex-wrap:wrap}
   .links a{color:var(--text-dim);border-bottom:1px dotted var(--text-mute)}
   .links a:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
   .links a{position:relative}
@@ -115,6 +116,7 @@
 <div id="errStrip" title="click to dismiss"></div>
 
 <div class="head">
+  <button class="danger" id="resetBtn" title="Reset every setting and section to its default (asks first)">reset to defaults</button>
   <div class="kicker">Fusion · DXF export</div>
   <h1 id="title">Export Selected to DXF</h1>
 </div>
@@ -214,16 +216,17 @@
 </div>
 
 <div class="section" data-key="about">
-  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub" id="aboutSub">links · credit · reset</span></div>
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub" id="aboutSub">links · credit</span></div>
   <div class="sec-body about">
     <div class="links">
       <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
+      <a id="lnkVer" data-tip="Release notes for the version you have installed, on GitHub.">Release Notes</a>
+    </div>
+    <div class="links">
       <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
-      <a id="lnkRel" class="tip-right" data-tip="See every released version and its release notes on GitHub.">all versions</a>
-      <a id="lnkVer" data-tip="Release notes for the version you have installed, on GitHub.">Export Selected to DXF</a>
+      <a id="lnkRel" data-tip="See every released version and its release notes on GitHub.">all versions</a>
     </div>
     <div>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</div>
-    <button class="danger" id="resetBtn">reset to defaults</button>
   </div>
 </div>
 <div id="pageEnd"></div>
@@ -252,8 +255,8 @@ function applyState(payload){
   if(payload.version){
     const t = payload.name+' (v'+payload.version+')';
     document.title = t;
-    document.getElementById('lnkVer').textContent = t; VERSION = payload.version;
-    document.getElementById('aboutSub').textContent = 'v'+payload.version+' · links · reset';
+    document.getElementById('lnkVer').dataset.tip = 'Release notes for v'+payload.version+' (the version you have installed), on GitHub.'; VERSION = payload.version;
+    document.getElementById('aboutSub').textContent = 'v'+payload.version+' · links · credit';
   }
   STATE = payload.state || payload;
   const o = STATE.options||{};
@@ -303,7 +306,7 @@ function renderLog(){
   if(atBottom) box.scrollTop = box.scrollHeight;
 }
 function logText(){
-  const head = (document.getElementById('lnkVer').textContent||'Export Selected to DXF')+' log\n';
+  const head = document.title+' log\n';
   return head + LOG.map(e => e.d+' '+e.t+'  '+e.level.toUpperCase().padEnd(5)+'  '+e.msg).join('\n');
 }
 function copyText(txt){
@@ -426,7 +429,7 @@ document.getElementById('updInstall').addEventListener('click', ()=>send('instal
 let fitTimer = null, lastFit = 0;
 function contentHeight(){
   const f = document.getElementById('pageEnd');
-  return Math.ceil(f.getBoundingClientRect().bottom + window.scrollY + 8);
+  return Math.ceil(f.getBoundingClientRect().bottom + window.scrollY);
 }
 let fitRetries = 0;
 function fitPalette(){
@@ -440,7 +443,7 @@ function fitPalette(){
       send('fitHeight', {content:h, inner:window.innerHeight}).then(r=>{
         let d={}; try{ d=JSON.parse(r||'{}'); }catch(e){}
         // Fusion can refuse a resize (e.g. while the panel is still docking): try again shortly
-        if(d.applied===false && fitRetries < 8){ fitRetries++; setTimeout(()=>{ lastFit=0; fitPalette(); }, 700); }
+        if(d.applied===false && fitRetries < 60){ fitRetries++; setTimeout(()=>{ lastFit=0; fitPalette(); }, 1000); }
         else if(d.applied) fitRetries = 0;
       });
     }catch(e){}
