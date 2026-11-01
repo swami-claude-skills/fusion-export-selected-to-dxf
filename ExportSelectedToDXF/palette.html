@@ -56,7 +56,8 @@
   #logBox .l-ok .lm{color:var(--green)} #logBox .l-warn .lm{color:var(--amber)} #logBox .l-error .lm{color:var(--red)}
   #logBox .lempty{color:var(--text-mute)}
   .logbar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-  #logFilter{width:118px;flex:none;padding:5px 7px;font-size:11px}
+  #logFilter{width:88px;flex:none;padding:5px 6px;font-size:11px}
+  .logbar button{padding:6px 9px}
   #updLine{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:8px}
   #status{margin-top:8px;font-family:var(--mono);font-size:11px;min-height:16px}
   #status.ok{color:var(--green)} #status.bad{color:var(--red)}
@@ -195,7 +196,7 @@
   <div class="sec-body">
     <div id="logBox"><div class="lempty">Nothing logged yet.</div></div>
     <div class="logbar">
-      <select id="logFilter" title="Show"><option value="all">all</option><option value="problems">problems only</option></select>
+      <select id="logFilter" title="Show"><option value="all">all</option><option value="problems">problems</option></select>
       <button id="logCopy">copy</button>
       <button id="logOpen" title="Open log.txt (the full history)">open log file</button>
       <button id="logClear" title="Clear this view (the log file keeps everything)">clear</button>
