@@ -849,7 +849,7 @@ class UpdateInfoHandler(adsk.core.CustomEventHandler):
             elif st == 'error':
                 log('warn', 'Update check failed: %s' % _update_info.get('error'))
             elif st == 'installed':
-                log('ok', 'Installed v%s (backup of v%s kept). Turn Run off and on in Shift+S to use it.' % (_update_info.get('installed'), VERSION))
+                log('ok', 'Installed v%s (backup of v%s kept). To use it, turn Run off and on in Scripts and Add-Ins (Shift+S, or UTILITIES > ADD-INS).' % (_update_info.get('installed'), VERSION))
             elif st == 'installFailed':
                 log('error', 'Update install failed: %s' % _update_info.get('error'))
             _push('update', _update_info)
