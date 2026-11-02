@@ -1,0 +1,38 @@
+EXPORT SELECTED TO DXF - HOW TO INSTALL
+========================================
+
+Documentation: https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/
+
+Pick ONE of the three ways below.
+
+1. IN FUSION (RECOMMENDED)
+   Mac and Windows. Nothing to approve, because no installer script runs.
+
+   1) Unzip ExportSelectedToDXF.zip and put the ExportSelectedToDXF folder somewhere it can stay, for example in Documents. Fusion runs the add-in from that folder.
+   2) In Fusion, open Scripts and Add-Ins: press Shift+S, or click the UTILITIES tab, open the ADD-INS drop-down and choose Scripts and Add-Ins.
+   3) Click the + next to My Add-Ins and choose the ExportSelectedToDXF folder.
+   4) Turn on Run and Run on Startup for ExportSelectedToDXF.
+   5) The button is on the SOLID tab under CREATE, and under UTILITIES > ADD-INS.
+
+2. MAC INSTALLER
+   Copies the add-in into Fusion's own AddIns folder. macOS blocks it the first time.
+
+   1) Unzip ExportSelectedToDXF.zip, open the ExportSelectedToDXF folder and double-click install-macos.command.
+   2) macOS says it could not verify the file. Click Done (not Move to Trash).
+   3) Open System Settings > Privacy & Security, scroll down to Security, and next to "install-macos.command was blocked" click Open Anyway. Confirm with Open Anyway again and your Mac password or Touch ID.
+   4) A Terminal window copies the add-in and says Done. Press any key to close it.
+   5) In Fusion, open Scripts and Add-Ins: press Shift+S, or click the UTILITIES tab, open the ADD-INS drop-down and choose Scripts and Add-Ins. Select ExportSelectedToDXF under Add-Ins and turn on Run and Run on Startup.
+   6) macOS asks again for every newly downloaded zip. Updates from the panel's install update button never ask.
+
+3. WINDOWS INSTALLER
+   Copies the add-in into Fusion's own AddIns folder.
+
+   1) Right-click ExportSelectedToDXF.zip and choose Extract All (the installer can't run from inside the zip).
+   2) Open the extracted ExportSelectedToDXF folder and double-click install-windows.cmd.
+   3) If Windows shows Windows protected your PC, click More info, then Run anyway. If it shows an Open File - Security Warning, click Run.
+   4) A window copies the add-in and says Done. Press any key to close it.
+   5) In Fusion, open Scripts and Add-Ins: press Shift+S, or click the UTILITIES tab, open the ADD-INS drop-down and choose Scripts and Add-Ins. Select ExportSelectedToDXF under Add-Ins and turn on Run and Run on Startup.
+
+UPDATING
+   When a newer version is out, the panel shows a green banner. Click "install update",
+   then in Scripts and Add-Ins turn the Run switch for ExportSelectedToDXF off, then on.
