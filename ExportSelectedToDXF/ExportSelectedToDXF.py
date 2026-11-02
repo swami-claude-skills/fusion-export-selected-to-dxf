@@ -4,10 +4,10 @@
 
 import adsk.core, adsk.fusion, traceback
 import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowser
-import io, shutil, zipfile, datetime, platform
+import io, shutil, zipfile, datetime, platform, time
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.5.2'
+VERSION    = '1.5.3'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -443,7 +443,7 @@ def _check_update_thread():
     Fusion's main thread through a custom event (the API is not thread-safe)."""
     info = {'state': 'error', 'current': VERSION}
     try:
-        req = urllib.request.Request(VERSION_URL, headers={'User-Agent': TOOL_NAME + '/' + VERSION,
+        req = urllib.request.Request(VERSION_URL + '?t=%d' % int(time.time()), headers={'User-Agent': TOOL_NAME + '/' + VERSION,
                                                            'Cache-Control': 'no-cache'})
         with urllib.request.urlopen(req, timeout=8) as r:
             data = json.loads(r.read().decode('utf-8'))
@@ -461,8 +461,12 @@ def _check_update_thread():
         pass
 
 
+_last_update_check = 0.0
+
+
 def _start_update_check():
-    global _update_info
+    global _update_info, _last_update_check
+    _last_update_check = time.time()
     _update_info = {'state': 'checking', 'current': VERSION}
     _push('update', _update_info)
     threading.Thread(target=_check_update_thread, daemon=True).start()
@@ -750,8 +754,10 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                                               'links': {'dashboard': DASHBOARD_URL,
                                                         'download': DOWNLOAD_URL,
                                                         'releases': RELEASES_URL}})
+                # check every time the panel opens (at most once every 2 minutes)
                 if action == 'ready' and STATE['options'].get('checkUpdates') \
-                        and _update_info.get('state') == 'unchecked':
+                        and _update_info.get('state') not in ('checking', 'installing', 'installed') \
+                        and time.time() - _last_update_check > 120:
                     _start_update_check()
             elif action == 'setState':
                 STATE = _deep_merge(STATE, data)
