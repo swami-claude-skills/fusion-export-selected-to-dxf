@@ -1,7 +1,7 @@
 {
-  "version": "1.5.2",
+  "version": "1.5.3",
   "date": "Nov 1, 2026",
-  "notes": "Install instructions (READ ME FIRST.txt) now in the zip.",
+  "notes": "Update check runs every time the panel opens; restart steps name both routes to Scripts and Add-Ins.",
   "zip": "https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip",
   "dashboard": "https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/"
 }

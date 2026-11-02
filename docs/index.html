@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="addin-version" content="1.5.2">
+<meta name="addin-version" content="1.5.3">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Export Selected to DXF — Swami</title>
@@ -735,11 +735,11 @@
 <header>
   <div class="kicker">FUSION ADD-IN DOCUMENTATION</div><!-- REQUIRED: short UPPERCASE page-type tag; never blank/remove -->
 
-  <h1>Export Selected to DXF (v<!--VERSION-->1.5.2<!--/VERSION-->) <br><span class="sub">One DXF per selected sketch, curve set, face, body or flat pattern — from a dark panel inside Autodesk Fusion</span></h1>
+  <h1>Export Selected to DXF (v<!--VERSION-->1.5.3<!--/VERSION-->) <br><span class="sub">One DXF per selected sketch, curve set, face, body or flat pattern — from a dark panel inside Autodesk Fusion</span></h1>
   <div class="byline">
     <span>Swami</span>
     <span>Autodesk Fusion add-in</span>
-    <span>Version <strong><!--VERSION-->1.5.2<!--/VERSION--></strong> · released <strong><!--DATE-->Nov 1, 2026<!--/DATE--></strong></span>
+    <span>Version <strong><!--VERSION-->1.5.3<!--/VERSION--></strong> · released <strong><!--DATE-->Nov 1, 2026<!--/DATE--></strong></span>
   </div>
 <!-- INSTALL-PANEL:BEGIN -->
 <style>
@@ -1059,6 +1059,7 @@ document.querySelectorAll('.getit .it-tab').forEach(function(b){b.addEventListen
     <div class="sec-body">
       <p>One entry per released version, newest first. This section is generated from the release notes each time a version is released, so it always matches the version in the title.</p>
 <!-- WHATSNEW:BEGIN -->
+      <div class="callout"><span class="lbl">v1.5.3 · Nov 1, 2026</span>update check runs every time the panel opens.<ul><li><span class="tid">Update check on every open</span>Before, the add-in checked for a newer version only the first time its panel opened after Fusion started, so a release that came out later wasn't offered until Fusion restarted. It now checks each time the panel opens (at most once every two minutes), and asks GitHub for a fresh copy of the version file instead of a cached one.</li><li><span class="tid">Restart instructions name both routes</span>After an update installs, the green banner, the Updates section and the Log say to open Scripts and Add-Ins with <strong>Shift+S</strong> or <strong>UTILITIES ▸ ADD-INS ▸ Scripts and Add-Ins</strong>, in case Shift+S has been reassigned.</li></ul></div>
       <div class="callout"><span class="lbl">v1.5.2 · Nov 1, 2026</span>install instructions in the zip.<ul><li><span class="tid">READ ME FIRST.txt</span>The zip now includes step-by-step instructions for all three ways to install: adding the folder in Fusion's Scripts and Add-Ins (reached with Shift+S or <strong>UTILITIES ▸ ADD-INS</strong>), the Mac installer (including the one-time <strong>Privacy &amp; Security ▸ Open Anyway</strong> step), and the Windows installer.</li><li><span class="tid">Installers</span>The Mac and Windows installers leave READ ME FIRST.txt out of the copy they make in Fusion's AddIns folder.</li></ul></div>
       <div class="callout"><span class="lbl">v1.5.1 · Nov 1, 2026</span>panel polish.<ul><li><span class="tid">About section</span>The links and credit moved into a collapsible <strong>About</strong> section, closed by default, whose header shows the installed version. Inside: <strong>documentation</strong> and <strong>release notes</strong> (the notes for the version you have installed) on the first row, <strong>download latest</strong> and <strong>all versions</strong> on the second.</li><li><span class="tid">Slimmer header</span>The "Fusion · DXF export" label and the title inside the panel are gone (the panel's own title bar already names it); <strong>reset to defaults</strong> sits alone in the top-right corner.</li><li><span class="tid">Opens top-right, in a fresh state</span>The panel opens floating in the top-right corner of Fusion's canvas, never taller than the room below it, with every section in its default state (Export open, the rest closed).</li><li><span class="tid">Panel height fixed</span>The panel is no longer forced to dock when it opens (a docked panel's height is locked), it keeps retrying for up to a minute if Fusion refuses a resize, and the extra space below the last section is gone.</li></ul></div>
       <div class="callout"><span class="lbl">v1.5.0 · Nov 1, 2026</span>tidier panel.<ul><li><span class="tid">Export section</span>The selection summary, EXPORT SELECTED button and destination line are now a collapsible <strong>Export</strong> section (open by default); its header shows the selection at a glance, e.g. "4 selected → 4 files".</li><li><span class="tid">Panel fits its contents</span>The panel's height follows the sections you open and close (when floating; a docked panel keeps the height its dock gives it).</li><li><span class="tid">Header links</span>"dashboard" is now <strong>documentation</strong>, and all three links show a tooltip explaining where they go.</li><li><span class="tid">Log controls on top</span>The filter, copy, open log file and clear controls sit above the log instead of below it, and the Log section always starts closed.</li></ul></div>
@@ -1229,7 +1230,7 @@ document.querySelectorAll('.getit .it-tab').forEach(function(b){b.addEventListen
           <thead><tr><th>#</th><th>Topic</th><th>Step</th></tr></thead>
           <tbody>
             <tr><td><strong>1</strong></td><td><span class="tid">Banner</span></td><td>When a newer version is out, the panel shows a green banner. Click <strong>install update</strong> and confirm.</td></tr>
-            <tr><td><strong>2</strong></td><td><span class="tid">Restart</span></td><td>Press <strong>Shift+S</strong> and turn the <strong>Run</strong> switch for ExportSelectedToDXF off, then on, or restart Fusion. The title then shows the new version.</td></tr>
+            <tr><td><strong>2</strong></td><td><span class="tid">Restart</span></td><td>Open Scripts and Add-Ins (press <strong>Shift+S</strong>, or <strong>UTILITIES ▸ ADD-INS ▸ Scripts and Add-Ins</strong>) and turn the <strong>Run</strong> switch for ExportSelectedToDXF off, then on, or restart Fusion. The title then shows the new version.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1289,7 +1290,7 @@ document.querySelectorAll('.getit .it-tab').forEach(function(b){b.addEventListen
       </div>
       <ul>
         <li><span class="tid">Selection</span>The add-in listens for Fusion's selection-changed event, so the Export section's count follows your clicks while the panel is visible.</li>
-        <li><span class="tid">Update check</span>On opening, a background thread reads version.json from GitHub and hands the result back to Fusion's main thread through a custom event.</li>
+        <li><span class="tid">Update check</span>Every time the panel opens (at most once every two minutes), a background thread reads a fresh copy of version.json from GitHub and hands the result back to Fusion's main thread through a custom event.</li>
         <li><span class="tid">Install update</span>Downloads the latest zip, checks it is a newer ExportSelectedToDXF package with safe file paths, backs up the current files, replaces them, and restores the backup if anything fails.</li>
         <li><span class="tid">Panel height</span>The page measures how much content is hidden or spare and asks Fusion to resize the panel by that amount, then re-measures until it fits. It never grows past the bottom of the canvas.</li><li><span class="tid">Panel position</span>When the panel opens it is placed in the top-right corner of Fusion's canvas, using the canvas position Fusion reports for the active viewport.</li>
       </ul>
