@@ -7,7 +7,7 @@ import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowse
 import io, shutil, zipfile, datetime, platform
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.5.1'
+VERSION    = '1.5.2'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'

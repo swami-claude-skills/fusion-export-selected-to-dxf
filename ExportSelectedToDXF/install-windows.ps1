@@ -6,7 +6,7 @@ $dest = Join-Path $env:APPDATA "Autodesk\Autodesk Fusion 360\API\AddIns\$Name"
 Write-Host "Installing $Name -> $dest"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-$exclude = @('install-macos.command','install-windows.cmd','install-windows.ps1')
+$exclude = @('install-macos.command','install-windows.cmd','install-windows.ps1','READ ME FIRST.txt')
 Get-ChildItem -Path $src -Recurse | Where-Object {
     $exclude -notcontains $_.Name
 } | ForEach-Object {

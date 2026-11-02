@@ -12,6 +12,7 @@ rsync -a --delete \
   --exclude 'install-macos.command' \
   --exclude 'install-windows.cmd' \
   --exclude 'install-windows.ps1' \
+  --exclude 'READ ME FIRST.txt' \
   "$SRC"/ "$DEST"/
 
 # The add-in was called ExportSelectedDXF before v1.2.0. Move that old copy to the Trash

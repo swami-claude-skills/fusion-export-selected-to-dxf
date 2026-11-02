@@ -1,7 +1,7 @@
 {
-  "version": "1.5.1",
+  "version": "1.5.2",
   "date": "Nov 1, 2026",
-  "notes": "Panel polish: About section, slimmer header, opens top-right in a fresh state, height fixed.",
+  "notes": "Install instructions (READ ME FIRST.txt) now in the zip.",
   "zip": "https://github.com/swami-claude-skills/fusion-export-selected-to-dxf/releases/latest/download/ExportSelectedToDXF.zip",
   "dashboard": "https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/"
 }
