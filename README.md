@@ -32,7 +32,7 @@ The button is in DESIGN under **SOLID ▸ CREATE** and **UTILITIES ▸ ADD-INS**
 
 ## Updating
 
-When the panel opens it checks [`version.json`](version.json). If a newer version exists, a green banner offers **install update**: the add-in downloads the new version from this repository, backs up the current one, and replaces its own files. Then press **Shift+S** and turn ExportSelectedToDXF's **Run** switch off, then on (or restart Fusion). Your settings are kept. Versions before 1.3.0 don't have the button; update those by downloading the zip and replacing the folder.
+Each time the panel opens it checks [`version.json`](version.json). If a newer version exists, a green banner offers **install update**: the add-in downloads the new version from this repository, backs up the current one, and replaces its own files. Then open **Scripts and Add-Ins** (**Shift+S**, or **UTILITIES ▸ ADD-INS ▸ Scripts and Add-Ins**) and turn ExportSelectedToDXF's **Run** switch off, then on (or restart Fusion). Your settings are kept. Versions before 1.3.0 don't have the button; update those by downloading the zip and replacing the folder.
 
 ## Repository layout
 
