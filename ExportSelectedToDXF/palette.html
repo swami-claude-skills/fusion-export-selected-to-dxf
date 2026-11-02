@@ -21,8 +21,8 @@
   #errStrip{display:none;background:rgba(255,92,122,.12);border-bottom:1px solid var(--red);
     color:var(--red);font-family:var(--mono);font-size:11px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;cursor:pointer}
 
-  .head{padding:12px;border-bottom:1px solid var(--border);position:relative}
-  .head #resetBtn{position:absolute;top:10px;right:12px;padding:4px 8px;font-size:10.5px}
+  .head{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end}
+  .head #resetBtn{padding:4px 8px;font-size:10.5px}
   .kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
   h1{font-size:15px;font-weight:700;margin-top:4px}
 
@@ -117,8 +117,6 @@
 
 <div class="head">
   <button class="danger" id="resetBtn" title="Reset every setting and section to its default (asks first)">reset to defaults</button>
-  <div class="kicker">Fusion · DXF export</div>
-  <h1 id="title">Export Selected to DXF</h1>
 </div>
 
 <div id="updBanner">
