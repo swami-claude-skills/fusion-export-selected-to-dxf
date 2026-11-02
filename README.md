@@ -21,14 +21,14 @@ Units (design, mm, cm, m, in, ft), file naming, overwrite or auto-number, and wh
 ## Install
 
 1. Download **ExportSelectedToDXF.zip** and unzip it. Put the **ExportSelectedToDXF** folder somewhere it can stay (for example a Fusion add-ins folder in Documents) — Fusion runs it from there.
-2. In Fusion press **Shift+S** to open **Scripts and Add-Ins**, click the **+** next to **My Add-Ins**, and choose the **ExportSelectedToDXF** folder.
+2. In Fusion open **Scripts and Add-Ins**: press **Shift+S**, or click the **UTILITIES** tab, open the **ADD-INS** drop-down and choose **Scripts and Add-Ins**. Click the **+** next to **My Add-Ins** and choose the **ExportSelectedToDXF** folder.
 3. Turn on **Run on Startup** and **Run** for **ExportSelectedToDXF**.
 
 This way nothing has to be approved in macOS Settings, because no installer script runs.
 
 The button is in DESIGN under **SOLID ▸ CREATE** and **UTILITIES ▸ ADD-INS**. To give it a keyboard shortcut, right-click the button and choose **Change Keyboard Shortcut**.
 
-**Alternative:** the zip also contains double-click installers (**install-macos.command**, **install-windows.cmd**) that copy the add-in into Fusion's own AddIns folder. On a Mac, macOS blocks the script the first time and it has to be allowed in **System Settings ▸ Privacy & Security**.
+**Alternative:** the zip also contains double-click installers (**install-macos.command**, **install-windows.cmd**) that copy the add-in into Fusion's own AddIns folder. On a Mac, macOS blocks the script the first time: click **Done**, then **Open Anyway** in **System Settings ▸ Privacy & Security**. On Windows, if SmartScreen appears, click **More info ▸ Run anyway**. Step-by-step instructions for all three ways are on the [documentation page](https://swami-claude-skills.github.io/fusion-export-selected-to-dxf/).
 
 ## Updating
 
