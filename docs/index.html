@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="addin-version" content="1.5.1">
+<meta name="addin-version" content="1.5.2">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Export Selected to DXF — Swami</title>
@@ -735,11 +735,11 @@
 <header>
   <div class="kicker">FUSION ADD-IN DOCUMENTATION</div><!-- REQUIRED: short UPPERCASE page-type tag; never blank/remove -->
 
-  <h1>Export Selected to DXF (v<!--VERSION-->1.5.1<!--/VERSION-->) <br><span class="sub">One DXF per selected sketch, curve set, face, body or flat pattern — from a dark panel inside Autodesk Fusion</span></h1>
+  <h1>Export Selected to DXF (v<!--VERSION-->1.5.2<!--/VERSION-->) <br><span class="sub">One DXF per selected sketch, curve set, face, body or flat pattern — from a dark panel inside Autodesk Fusion</span></h1>
   <div class="byline">
     <span>Swami</span>
     <span>Autodesk Fusion add-in</span>
-    <span>Version <strong><!--VERSION-->1.5.1<!--/VERSION--></strong> · released <strong><!--DATE-->Nov 1, 2026<!--/DATE--></strong></span>
+    <span>Version <strong><!--VERSION-->1.5.2<!--/VERSION--></strong> · released <strong><!--DATE-->Nov 1, 2026<!--/DATE--></strong></span>
   </div>
 <!-- INSTALL-PANEL:BEGIN -->
 <style>
@@ -1059,6 +1059,7 @@ document.querySelectorAll('.getit .it-tab').forEach(function(b){b.addEventListen
     <div class="sec-body">
       <p>One entry per released version, newest first. This section is generated from the release notes each time a version is released, so it always matches the version in the title.</p>
 <!-- WHATSNEW:BEGIN -->
+      <div class="callout"><span class="lbl">v1.5.2 · Nov 1, 2026</span>install instructions in the zip.<ul><li><span class="tid">READ ME FIRST.txt</span>The zip now includes step-by-step instructions for all three ways to install: adding the folder in Fusion's Scripts and Add-Ins (reached with Shift+S or <strong>UTILITIES ▸ ADD-INS</strong>), the Mac installer (including the one-time <strong>Privacy &amp; Security ▸ Open Anyway</strong> step), and the Windows installer.</li><li><span class="tid">Installers</span>The Mac and Windows installers leave READ ME FIRST.txt out of the copy they make in Fusion's AddIns folder.</li></ul></div>
       <div class="callout"><span class="lbl">v1.5.1 · Nov 1, 2026</span>panel polish.<ul><li><span class="tid">About section</span>The links and credit moved into a collapsible <strong>About</strong> section, closed by default, whose header shows the installed version. Inside: <strong>documentation</strong> and <strong>release notes</strong> (the notes for the version you have installed) on the first row, <strong>download latest</strong> and <strong>all versions</strong> on the second.</li><li><span class="tid">Slimmer header</span>The "Fusion · DXF export" label and the title inside the panel are gone (the panel's own title bar already names it); <strong>reset to defaults</strong> sits alone in the top-right corner.</li><li><span class="tid">Opens top-right, in a fresh state</span>The panel opens floating in the top-right corner of Fusion's canvas, never taller than the room below it, with every section in its default state (Export open, the rest closed).</li><li><span class="tid">Panel height fixed</span>The panel is no longer forced to dock when it opens (a docked panel's height is locked), it keeps retrying for up to a minute if Fusion refuses a resize, and the extra space below the last section is gone.</li></ul></div>
       <div class="callout"><span class="lbl">v1.5.0 · Nov 1, 2026</span>tidier panel.<ul><li><span class="tid">Export section</span>The selection summary, EXPORT SELECTED button and destination line are now a collapsible <strong>Export</strong> section (open by default); its header shows the selection at a glance, e.g. "4 selected → 4 files".</li><li><span class="tid">Panel fits its contents</span>The panel's height follows the sections you open and close (when floating; a docked panel keeps the height its dock gives it).</li><li><span class="tid">Header links</span>"dashboard" is now <strong>documentation</strong>, and all three links show a tooltip explaining where they go.</li><li><span class="tid">Log controls on top</span>The filter, copy, open log file and clear controls sit above the log instead of below it, and the Log section always starts closed.</li></ul></div>
       <div class="callout"><span class="lbl">v1.4.0 · Nov 1, 2026</span>activity log, and flat patterns for sheet-metal parts that don't have one yet.<ul><li><span class="tid">Log window</span>A new <strong>Log</strong> section in the panel lists every export (each file written, skipped item and error), update checks and installs, with times. Show everything or problems only; <strong>copy</strong> puts the log on the clipboard to paste into a message; <strong>open log file</strong> opens the full history (log.txt in the add-in's settings folder, kept across restarts and updates).</li><li><span class="tid">Sheet-metal parts without a flat pattern now export their flat pattern</span>Before, selecting such a body exported only its largest flat face. The add-in now creates the flat pattern (the largest flat face stays put) and leaves it in the part, exactly like Fusion's own Create Flat Pattern, then exports it with your bend-line settings.</li><li><span class="tid">Change</span>Restart wording updated for Fusion's newer Scripts and Add-Ins dialog: turn the add-in's <strong>Run</strong> switch off, then on.</li></ul></div>
@@ -1234,7 +1235,7 @@ document.querySelectorAll('.getit .it-tab').forEach(function(b){b.addEventListen
       </div>
       <div class="callout"><span class="lbl">Keyboard shortcut</span>Right-click the add-in's button, choose <strong>Change Keyboard Shortcut</strong>, and press your key combination.</div>
       <ul>
-        <li><span class="tid">No approvals</span>Adding the folder in Scripts and Add-Ins runs no installer script, so there is nothing to allow in macOS System Settings. Updates from the install update button never ask either.</li>
+        <li><span class="tid">No approvals</span>Adding the folder in Scripts and Add-Ins runs no installer script, so there is nothing to allow in macOS System Settings. Updates from the install update button never ask either.</li><li><span class="tid">READ ME FIRST</span>The zip includes <strong>READ ME FIRST.txt</strong> with these same three sets of steps, for anyone who got the zip without this page.</li>
         <li><span class="tid">Older versions</span>Versions before 1.3.0 have no install update button; update those by downloading the zip and replacing the folder.</li>
       </ul>
     </div>
