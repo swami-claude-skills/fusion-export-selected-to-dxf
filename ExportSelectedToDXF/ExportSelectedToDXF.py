@@ -7,7 +7,7 @@ import os, json, copy, re, subprocess, sys, threading, urllib.request, webbrowse
 import io, shutil, zipfile, datetime, platform
 
 # ---- single source of truth for the version (must match the .manifest) ----
-VERSION    = '1.5.0'
+VERSION    = '1.5.1'
 TOOL_NAME  = 'ExportSelectedToDXF'
 TITLE      = 'Export Selected to DXF'
 CMD_ID     = 'ExportSelectedToDXF_cmd'
@@ -58,7 +58,7 @@ DEFAULTS = {
         'checkUpdates': True,         # look for a newer version when the panel opens
     },
     'ui': {'collapsed': {'export': False, 'output': True, 'sketch': True, 'flat': True, 'updates': True,
-                         'results': True, 'log': True}},
+                         'results': True, 'log': True, 'about': True}},
 }
 
 
@@ -604,7 +604,33 @@ def _log_results(results):
             log('error', '%s %s failed: %s' % (r.get('kind'), name, r.get('error')))
 
 
-FIT_EXTRA = 6    # small breathing room below the footer (Fusion's Close bar sits outside the page)
+FIT_EXTRA = 0    # the page measures its own end exactly (Fusion's Close bar sits outside the page)
+
+
+def _canvas_rect():
+    """(left, top, width, height) of Fusion's canvas in palette-position units, or None.
+    The canvas origin comes from viewToScreen(0,0); its size from the viewport, which is
+    in the same units as palette positions (checked on a Retina Mac)."""
+    try:
+        vp = app.activeViewport
+        tl = vp.viewToScreen(adsk.core.Point2D.create(0, 0))
+        if not tl or vp.width <= 0 or vp.height <= 0:
+            return None
+        return int(tl.x), int(tl.y), int(vp.width), int(vp.height)
+    except Exception:
+        return None
+
+
+def _place_top_right(p, margin=12):
+    """Put the floating palette in the top-right corner of Fusion's canvas."""
+    r = _canvas_rect()
+    if not r:
+        return
+    left, top, width, _ = r
+    try:
+        p.setPosition(left + width - p.width - margin, top + margin)
+    except Exception:
+        pass
 
 
 def _fit_palette(data):
@@ -620,20 +646,29 @@ def _fit_palette(data):
     if content <= 0 or inner <= 0:
         return
     cap = 1100
-    try:
-        cap = max(400, int(app.activeViewport.height) + 140)
-    except Exception:
-        pass
+    r = _canvas_rect()
+    if r:   # never taller than the room between the panel's top and the bottom of the canvas
+        cap = max(300, r[1] + r[3] - p.top - 12)
     before = p.height
     target = max(240, min(before + (content + FIT_EXTRA - inner), cap))
     if abs(target - before) > 3:
         p.setSize(p.width, target)
-    try:
-        with open(os.path.join(_data_dir(), 'fit_debug.json'), 'w', encoding='utf-8') as f:
-            json.dump({'content': content, 'inner': inner, 'before': before, 'target': target,
-                       'after': p.height, 'cap': cap, 'docking': int(p.dockingState)}, f)
+    applied = abs(p.height - target) <= 3
+    try:   # keep the last 40 adjustments for troubleshooting
+        path = os.path.join(_data_dir(), 'fit_debug.json')
+        try:
+            hist = json.load(open(path, encoding='utf-8'))
+            hist = hist if isinstance(hist, list) else [hist]
+        except Exception:
+            hist = []
+        hist.append({'t': datetime.datetime.now().strftime('%H:%M:%S'), 'content': content, 'inner': inner,
+                     'before': before, 'target': target, 'after': p.height, 'cap': cap,
+                     'docking': int(p.dockingState)})
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(hist[-40:], f)
     except Exception:
         pass
+    return applied
 
 
 def _current_entities():
@@ -687,7 +722,9 @@ class CmdCreatedHandler(adsk.core.CommandCreatedEventHandler):
             if palette is None:
                 palette = ui.palettes.add(PALETTE_ID, '%s (v%s)' % (TITLE, VERSION), PALETTE_URL,
                                           True, True, True, 380, 640)
-                palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
+                # Left floating: a docked palette's height is locked, which stops the panel
+                # from fitting its contents. It opens in the top-right corner of the canvas.
+                _place_top_right(palette)
                 h = HtmlHandler();   palette.incomingFromHTML.add(h); _handlers.append(h)
                 c = ClosedHandler(); palette.closed.add(c);           _handlers.append(c)
             else:
@@ -703,7 +740,9 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
             action = args.action
             data = json.loads(args.data) if args.data else {}
             if action in ('ready', 'getState'):
-                args.returnData = json.dumps({'version': VERSION, 'name': TITLE, 'state': STATE,
+                shown = copy.deepcopy(STATE)
+                shown['ui']['collapsed'] = copy.deepcopy(DEFAULTS['ui']['collapsed'])   # always open as default
+                args.returnData = json.dumps({'version': VERSION, 'name': TITLE, 'state': shown,
                                               'selection': _selection_summary(),
                                               'results': _last_results,
                                               'update': _update_info,
@@ -744,8 +783,7 @@ class HtmlHandler(adsk.core.HTMLEventHandler):
                     _open_url(url)
                 args.returnData = 'OK'
             elif action == 'fitHeight':
-                _fit_palette(data)
-                args.returnData = 'OK'
+                args.returnData = json.dumps({'applied': bool(_fit_palette(data))})
             elif action == 'clearLog':
                 with _LOG_LOCK:
                     _LOG.clear()

@@ -15,13 +15,14 @@
     --sans: system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:0 0 8px;overflow-x:hidden}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:0;overflow-x:hidden}
   a{color:var(--cyan);text-decoration:none;cursor:pointer}
 
   #errStrip{display:none;background:rgba(255,92,122,.12);border-bottom:1px solid var(--red);
     color:var(--red);font-family:var(--mono);font-size:11px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;cursor:pointer}
 
-  .head{padding:12px;border-bottom:1px solid var(--border)}
+  .head{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end}
+  .head #resetBtn{padding:4px 8px;font-size:10.5px}
   .kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
   h1{font-size:15px;font-weight:700;margin-top:4px}
 
@@ -38,11 +39,11 @@
   #exportBtn:disabled{opacity:.4;cursor:default}
   .dest{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--text-mute);word-break:break-all}
   .dest b{color:var(--text-dim);font-weight:400}
-  .links{display:flex;gap:14px;margin-top:6px;font-family:var(--mono);font-size:11px}
+  .links{display:flex;gap:6px 14px;font-family:var(--mono);font-size:11px;flex-wrap:wrap}
   .links a{color:var(--text-dim);border-bottom:1px dotted var(--text-mute)}
   .links a:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
   .links a{position:relative}
-  .links a[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 7px);z-index:60;
+  .links a[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 7px);z-index:60;
     width:230px;max-width:calc(100vw - 30px);white-space:normal;background:var(--panel-2);border:1px solid var(--cyan);
     color:var(--text);font-family:var(--sans);font-size:11.5px;line-height:1.45;padding:7px 9px;border-radius:6px;
     box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:none}
@@ -105,9 +106,9 @@
   .res li.bad .meta,.res li.skip .meta{color:var(--amber)}
   .empty{color:var(--text-mute);font-size:12px;padding:6px 0}
 
-  footer{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);padding:12px;
-    display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  footer .ver{color:var(--text-dim)}
+  .sec-body.about{font-family:var(--mono);font-size:10.5px;color:var(--text-mute);flex-direction:column;align-items:flex-start;gap:8px}
+  .section.open .sec-body.about{display:flex}   /* hidden when closed, like every section */
+  .sec-body.about .ver{color:var(--text-dim)}
 </style>
 </head>
 <body>
@@ -115,13 +116,7 @@
 <div id="errStrip" title="click to dismiss"></div>
 
 <div class="head">
-  <div class="kicker">Fusion · DXF export</div>
-  <h1 id="title">Export Selected to DXF</h1>
-  <div class="links">
-    <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
-    <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
-    <a id="lnkRel" class="tip-right" data-tip="See every released version and its release notes on GitHub.">all versions</a>
-  </div>
+  <button class="danger" id="resetBtn" title="Reset every setting and section to its default (asks first)">reset to defaults</button>
 </div>
 
 <div id="updBanner">
@@ -189,16 +184,6 @@
   </div>
 </div>
 
-<div class="section" data-key="updates">
-  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Updates</span><span class="sec-sub" id="updSub">—</span></div>
-  <div class="sec-body">
-    <label class="chk"><input type="checkbox" id="opt_checkUpdates"><span>Check for a newer version when the panel opens<small>Reads a small version file on GitHub; nothing is downloaded or installed automatically</small></span></label>
-    <button id="updCheck">check now</button>
-    <div id="updLine">Not checked yet.</div>
-    <div class="hint">When a newer version is out, click <b>install update</b> in the green banner. After it installs, press Shift+S in Fusion and turn ExportSelectedToDXF's Run switch off, then on (or just restart Fusion).</div>
-  </div>
-</div>
-
 <div class="section" data-key="results">
   <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Last export</span><span class="sec-sub" id="resSub">—</span></div>
   <div class="sec-body"><ul class="res" id="resList"><li class="empty">Nothing exported yet.</li></ul></div>
@@ -218,15 +203,36 @@
   </div>
 </div>
 
-<footer>
-  <span class="ver" id="ver">Export Selected to DXF</span>
-  <span>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</span>
-  <button class="danger" id="resetBtn">reset to defaults</button>
-</footer>
+<div class="section" data-key="updates">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">Updates</span><span class="sec-sub" id="updSub">—</span></div>
+  <div class="sec-body">
+    <label class="chk"><input type="checkbox" id="opt_checkUpdates"><span>Check for a newer version when the panel opens<small>Reads a small version file on GitHub; nothing is downloaded or installed automatically</small></span></label>
+    <button id="updCheck">check now</button>
+    <div id="updLine">Not checked yet.</div>
+    <div class="hint">When a newer version is out, click <b>install update</b> in the green banner. After it installs, press Shift+S in Fusion and turn ExportSelectedToDXF's Run switch off, then on (or just restart Fusion).</div>
+  </div>
+</div>
+
+<div class="section" data-key="about">
+  <div class="sec-head"><span class="chev">▶</span><span class="sec-title">About</span><span class="sec-sub" id="aboutSub">links · credit</span></div>
+  <div class="sec-body about">
+    <div class="links">
+      <a id="lnkDash" data-tip="Open this add-in's documentation in your web browser: what it does, every option, install and update steps.">documentation</a>
+      <a id="lnkVer" data-tip="Release notes for the version you have installed, on GitHub.">release notes</a>
+    </div>
+    <div class="links">
+      <a id="lnkDl" data-tip="Download the newest version's zip from GitHub.">download latest</a>
+      <a id="lnkRel" data-tip="See every released version and its release notes on GitHub.">all versions</a>
+    </div>
+    <div>Vibe Coding: <a id="mail">Swami</a> · AI: Claude</div>
+  </div>
+</div>
+<div id="pageEnd"></div>
 
 <script>
 let STATE = {};
 let LOG = [];
+let VERSION = '';
 let LINKS = {};
 let UPD = {};
 const UNIT_LABEL = {design:'design', mm:'mm', cm:'cm', m:'m', in:'in', ft:'ft'};
@@ -246,7 +252,9 @@ function reflectDest(){
 function applyState(payload){
   if(payload.version){
     const t = payload.name+' (v'+payload.version+')';
-    document.getElementById('ver').textContent = t; document.title = t;
+    document.title = t;
+    document.getElementById('lnkVer').dataset.tip = 'Release notes for v'+payload.version+' (the version you have installed), on GitHub.'; VERSION = payload.version;
+    document.getElementById('aboutSub').textContent = 'v'+payload.version+' · links · credit';
   }
   STATE = payload.state || payload;
   const o = STATE.options||{};
@@ -257,7 +265,7 @@ function applyState(payload){
   const col = (STATE.ui && STATE.ui.collapsed)||{};
   document.querySelectorAll('.section').forEach(sec=>{
     const key=sec.dataset.key;
-    sec.classList.toggle('open', key==='log' ? false : (key in col ? !col[key] : false));   // Log always starts closed
+    sec.classList.toggle('open', key in col ? !col[key] : false);   // defaults sent by the add-in
   });
   reflectDest();
   if(payload.selection) applySelection(payload.selection);
@@ -296,7 +304,7 @@ function renderLog(){
   if(atBottom) box.scrollTop = box.scrollHeight;
 }
 function logText(){
-  const head = (document.getElementById('ver').textContent||'Export Selected to DXF')+' log\n';
+  const head = document.title+' log\n';
   return head + LOG.map(e => e.d+' '+e.t+'  '+e.level.toUpperCase().padEnd(5)+'  '+e.msg).join('\n');
 }
 function copyText(txt){
@@ -330,10 +338,7 @@ function applyResults(results){
 // collapse toggle + persist
 document.querySelectorAll('.section').forEach(sec=>{
   sec.querySelector('.sec-head').addEventListener('click', ()=>{
-    sec.classList.toggle('open');
-    if(sec.dataset.key==='log') return;   // not remembered: Log always starts closed
-    const patch={ui:{collapsed:{}}}; patch.ui.collapsed[sec.dataset.key]=!sec.classList.contains('open');
-    send('setState', patch);
+    sec.classList.toggle('open');   // not remembered: every section reopens in its default state
   });
 });
 
@@ -409,6 +414,7 @@ function applyUpdate(u){
 document.getElementById('lnkDash').addEventListener('click', ()=>openUrl((UPD.dashboard)||LINKS.dashboard));
 document.getElementById('lnkDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
 document.getElementById('lnkRel').addEventListener('click', ()=>openUrl(LINKS.releases));
+document.getElementById('lnkVer').addEventListener('click', ()=>openUrl(LINKS.releases + (VERSION ? '/tag/v'+VERSION : '')));
 document.getElementById('updDl').addEventListener('click', ()=>openUrl((UPD.zip)||LINKS.download));
 document.getElementById('updWhat').addEventListener('click', ()=>openUrl(LINKS.releases));
 document.getElementById('updCheck').addEventListener('click', ()=>send('checkUpdate',{}));
@@ -417,9 +423,10 @@ document.getElementById('updInstall').addEventListener('click', ()=>send('instal
 // ---- fit the palette's height to the open sections ----
 let fitTimer = null, lastFit = 0;
 function contentHeight(){
-  const f = document.querySelector('footer');
-  return Math.ceil(f.getBoundingClientRect().bottom + window.scrollY + 8);
+  const f = document.getElementById('pageEnd');
+  return Math.ceil(f.getBoundingClientRect().bottom + window.scrollY);
 }
+let fitRetries = 0;
 function fitPalette(){
   clearTimeout(fitTimer);
   fitTimer = setTimeout(()=>{
@@ -427,12 +434,20 @@ function fitPalette(){
     const key = h + ':' + window.innerHeight;
     if(key === lastFit) return;
     lastFit = key;
-    try{ send('fitHeight', {content:h, inner:window.innerHeight}); }catch(e){}
+    try{
+      send('fitHeight', {content:h, inner:window.innerHeight}).then(r=>{
+        let d={}; try{ d=JSON.parse(r||'{}'); }catch(e){}
+        // Fusion can refuse a resize (e.g. while the panel is still docking): try again shortly
+        if(d.applied===false && fitRetries < 60){ fitRetries++; setTimeout(()=>{ lastFit=0; fitPalette(); }, 1000); }
+        else if(d.applied) fitRetries = 0;
+      });
+    }catch(e){}
   }, 120);
 }
 if(window.ResizeObserver){ new ResizeObserver(fitPalette).observe(document.body); }
 window.addEventListener('resize', ()=>{ lastFit = 0; fitPalette(); });
 window.addEventListener('load', fitPalette);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ lastFit=0; fitPalette(); } });
 
 window.fusionJavaScriptHandler = { handle(action, dataStr){
   try{
